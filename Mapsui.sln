@@ -1323,6 +1323,11 @@ Global
 		{B1744672-2B07-4FFE-B56C-47C16273918E}.Release|x86.ActiveCfg = Release|x86
 		{B1744672-2B07-4FFE-B56C-47C16273918E}.Release|x86.Build.0 = Release|x86
 		{B1744672-2B07-4FFE-B56C-47C16273918E}.Release|x86.Deploy.0 = Release|x86
+		{B1744672-2B07-4FFE-B56C-47C16273918E}.Debug|AnyCPU.Build.0 = Debug|x86
+		{B1744672-2B07-4FFE-B56C-47C16273918E}.Debug|AnyCPU.Deploy.0 = Debug|x86
+		{B1744672-2B07-4FFE-B56C-47C16273918E}.Release|AnyCPU.ActiveCfg = Release|x86
+		{B1744672-2B07-4FFE-B56C-47C16273918E}.Release|AnyCPU.Build.0 = Release|x86
+		{B1744672-2B07-4FFE-B56C-47C16273918E}.Release|AnyCPU.Deploy.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

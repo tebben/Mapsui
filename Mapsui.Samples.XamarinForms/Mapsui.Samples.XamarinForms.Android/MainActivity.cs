@@ -1,10 +1,5 @@
-﻿using System;
-
-using Android.App;
+﻿using Android.App;
 using Android.Content.PM;
-using Android.Runtime;
-using Android.Views;
-using Android.Widget;
 using Android.OS;
 
 namespace Mapsui.Samples.XamarinForms.Droid
@@ -20,8 +15,7 @@ namespace Mapsui.Samples.XamarinForms.Droid
 			base.OnCreate (bundle);
 
 			global::Xamarin.Forms.Forms.Init (this, bundle);
-			LoadApplication (new Mapsui.Samples.XamarinForms.App ());
+			LoadApplication (new App ());
 		}
 	}
 }
-
