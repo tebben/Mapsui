@@ -371,8 +371,9 @@ namespace Mapsui.UI.XamarinForms
         {
             if (double.IsNaN(Map.Viewport.Resolution)) return;
 
-            Map.Viewport.Width = width;
-            Map.Viewport.Height = height;
+            Map.Viewport.Width = Width;
+            Map.Viewport.Height = Height;
+            canvas.Scale((float)(width / Width), (float)(height / Height));
 
             Renderer.Render(canvas, Map.Viewport, Map.Layers, Map.BackColor);
             _invalid = false;
@@ -384,9 +385,7 @@ namespace Mapsui.UI.XamarinForms
             if (!_viewportInitialized) return; // Stop if the line above failed. 
             if (!_invalid) return; // Don't render when nothing has changed
 
-            e.Surface.Canvas.Scale((float)(e.Info.Width / Width), (float)(e.Info.Height / Height));
-
-            OnPaintSurface(e.Surface.Canvas, (int)Width, (int)Height);
+            OnPaintSurface(e.Surface.Canvas, e.Info.Width, e.Info.Height);
         }
     }
 }
