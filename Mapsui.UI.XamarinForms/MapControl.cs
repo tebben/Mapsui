@@ -32,11 +32,77 @@ namespace Mapsui.UI.XamarinForms
             var panRecognizer = new PanGestureRecognizer();
             panRecognizer.PanUpdated += PanRecognizerPanUpdated;
             GestureRecognizers.Add(panRecognizer);
+
+            var tapGestureRecognizer = new TapGestureRecognizer{ NumberOfTapsRequired = 1 };
+            //tapGestureRecognizer.Command += new Command();
         }
 
         private void PanRecognizerPanUpdated(object sender, PanUpdatedEventArgs e)
         {
-            //throw new NotImplementedException();
+            System.Diagnostics.Debug.WriteLine($"Action Pos x: {e.TotalX} y: {e.TotalY}");
+
+            if (e.StatusType == GestureStatus.Completed)
+            {
+                _previousMousePosition = default(Point);
+                return;
+            }
+
+            if (_previousMousePosition == default(Point))
+            {
+                HandlerActionDown(new Point(e.TotalX, e.TotalY));
+            }
+            if (e.StatusType == GestureStatus.Running)
+            {
+
+                if (_previousMousePosition == default(Point))
+                {
+                    // It turns out that sometimes MouseMove+Pressed is called before MouseDown
+                    return;
+                }
+                
+                _currentMousePosition = new Point(e.TotalX, e.TotalY);//Needed for both MouseMove and MouseWheel event
+                    Map.Viewport.Transform(_currentMousePosition.X, _currentMousePosition.Y, _previousMousePosition.X,
+                    _previousMousePosition.Y);
+                _previousMousePosition = _currentMousePosition;
+                _map.ViewChanged(false);
+                OnViewChanged(true);
+                RefreshGraphics();
+            }
+            //if (e.StylusDevice != null) return;
+
+            //if (IsInBoxZoomMode || ZoomToBoxMode)
+            //{
+            //    DrawBbox(e.GetPosition(this));
+            //    return;
+            //}
+
+            //if (!_mouseDown) RaiseHoverInfoEvents(e.GetPosition(this));
+
+            //if (_mouseDown)
+            //{
+            //    if (_previousMousePosition == default(Point))
+            //        return; // It turns out that sometimes MouseMove+Pressed is called before MouseDown
+
+            //    _currentMousePosition = e.GetPosition(this); //Needed for both MouseMove and MouseWheel event
+            //    Map.Viewport.Transform(_currentMousePosition.X, _currentMousePosition.Y, _previousMousePosition.X,
+            //        _previousMousePosition.Y);
+            //    _previousMousePosition = _currentMousePosition;
+            //    _map.ViewChanged(false);
+            //    OnViewChanged(true);
+            //    RefreshGraphics();
+            //}
+        }
+
+        private Point _previousMousePosition;
+        private Point _currentMousePosition;
+        private Point _downMousePosition;
+        private bool _mouseDown;
+
+        private void HandlerActionDown(Point actionPos)
+        {
+            _previousMousePosition = actionPos;
+            _downMousePosition = actionPos;
+            _mouseDown = true;
         }
 
         public void Init()
@@ -126,10 +192,13 @@ namespace Mapsui.UI.XamarinForms
         public void RefreshGraphics()
         {
             _invalid = true;
-            // Dispatcher.BeginInvoke(new Action(InvalidateVisual));
+            //Dispatcher.BeginInvoke(new Action(InvalidateVisual));
 
             // nodig?? invoke nodig??
-            RenderElement.InvalidateSurface();
+            Device.BeginInvokeOnMainThread(() =>
+            {
+                RenderElement.InvalidateSurface();
+            });
         }
 
         public void Clear()
@@ -180,6 +249,8 @@ namespace Mapsui.UI.XamarinForms
             //OnViewChanged();
             //RefreshGraphics();
         }
+
+
 
         private void MapControlLoaded()
         {
