@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Mapsui.Layers;
 
 namespace Mapsui.Samples.XamarinForms.Models
 {
@@ -9,6 +10,8 @@ namespace Mapsui.Samples.XamarinForms.Models
 
         private string _title;
         private bool _visible;
+        private double _opacity;
+        private ILayer _layer;
 
         public string Title
         {
@@ -32,6 +35,32 @@ namespace Mapsui.Samples.XamarinForms.Models
             set
             {
                 _visible = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public double Opacity
+        {
+            get
+            {
+                return _opacity;
+            }
+            set
+            {
+                _opacity = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ILayer Layer
+        {
+            get
+            {
+                return _layer;
+            }
+            set
+            {
+                _layer = value;
                 OnPropertyChanged();
             }
         }

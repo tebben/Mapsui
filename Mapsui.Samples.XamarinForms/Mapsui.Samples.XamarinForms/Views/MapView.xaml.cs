@@ -1,12 +1,13 @@
-﻿using Mapsui.Utilities;
+﻿using System;
+using Mapsui.Utilities;
 
-namespace Mapsui.Samples.XamarinForms
+namespace Mapsui.Samples.XamarinForms.Views
 {
     public partial class MapView
     {
         public MapView()
         {
-            InitializeComponent();
+            InitializeComponent();            
         }
 
         protected override void OnAppearing()
@@ -14,6 +15,11 @@ namespace Mapsui.Samples.XamarinForms
             MapControl.Init();
             MapControl.Map.Layers.Add(OpenStreetMap.CreateTileLayer());
             MapControl.Refresh();
+        }
+
+        private void BtnTocOnTapped(object sender, EventArgs e)
+        {
+            
         }
     }
 }

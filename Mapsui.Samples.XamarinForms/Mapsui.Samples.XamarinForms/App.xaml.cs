@@ -1,4 +1,5 @@
-﻿using Xamarin.Forms;
+﻿using Mapsui.Samples.XamarinForms.Views;
+using Xamarin.Forms;
 
 namespace Mapsui.Samples.XamarinForms
 {
