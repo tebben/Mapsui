@@ -21,6 +21,8 @@ namespace Mapsui.UI.XamarinForms
         private Map _map;
         private double _toResolution = double.NaN;
         private bool _viewportInitialized;
+        private double _previousWidth;
+        private double _previousHeight;
 
         public MapControl()
         {
@@ -35,6 +37,17 @@ namespace Mapsui.UI.XamarinForms
 
             var tapGestureRecognizer = new TapGestureRecognizer{ NumberOfTapsRequired = 1 };
             //tapGestureRecognizer.Command += new Command();
+        }
+
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (_previousWidth!= width || _previousHeight != height)
+            {
+                _previousWidth = width;
+                _previousHeight = height;
+                RefreshGraphics();
+            }
         }
 
         private void PanRecognizerPanUpdated(object sender, PanUpdatedEventArgs e)
@@ -358,8 +371,8 @@ namespace Mapsui.UI.XamarinForms
         {
             if (double.IsNaN(Map.Viewport.Resolution)) return;
 
-            Map.Viewport.Width = Width;
-            Map.Viewport.Height = Height;
+            Map.Viewport.Width = width;
+            Map.Viewport.Height = height;
 
             Renderer.Render(canvas, Map.Viewport, Map.Layers, Map.BackColor);
             _invalid = false;
@@ -371,8 +384,9 @@ namespace Mapsui.UI.XamarinForms
             if (!_viewportInitialized) return; // Stop if the line above failed. 
             if (!_invalid) return; // Don't render when nothing has changed
 
-            e.Surface.Canvas.Scale((float)Scale, (float)Scale);
-            OnPaintSurface(e.Surface.Canvas, e.Info.Width, e.Info.Height);
+            e.Surface.Canvas.Scale((float)(e.Info.Width / Width), (float)(e.Info.Height / Height));
+
+            OnPaintSurface(e.Surface.Canvas, (int)Width, (int)Height);
         }
     }
 }
