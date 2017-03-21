@@ -2,9 +2,24 @@
 <Application xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Mapsui.Samples.XamarinForms.App">
-	<Application.Resources>
+    <Application.Resources>
+        <ResourceDictionary>
+            <Color x:Key="AccentColor1">#C2CADF</Color>
+            <Color x:Key="AccentColor2">#7697AA</Color>
+            <Color x:Key="AccentColor3">#C2DFC7</Color>
+            <Color x:Key="AccentColor4">#FFFFFF</Color>
+            <Color x:Key="BackgroundColor">#33302E</Color>
+            <Color x:Key="TextColorDark">#000000</Color>
+            <Color x:Key="TextColorLight">#FFFFFF</Color>
 
-		<!-- Application resource dictionary -->
-
-	</Application.Resources>
+            <Style x:Key="LabelStyle" TargetType="Label">
+                <Setter Property="TextColor" Value="{DynamicResource TextColor}" />
+            </Style>
+            
+            <Style x:Key="BackgroundStyle" TargetType="VisualElement">
+                <Setter Property="BackgroundColor" Value="{DynamicResource AccentColor2}" />
+            </Style>
+            
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>
