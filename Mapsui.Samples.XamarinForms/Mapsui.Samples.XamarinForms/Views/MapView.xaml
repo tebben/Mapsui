@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:Mapsui.Samples.XamarinForms"
              xmlns:xamarinForms="clr-namespace:Mapsui.UI.XamarinForms;assembly=Mapsui.UI.XamarinForms"
-             xmlns:toc="clr-namespace:Mapsui.Samples.XamarinForms.Controls.Toc;assembly=Mapsui.Samples.XamarinForms.Android"
+             xmlns:toc="clr-namespace:Mapsui.Samples.XamarinForms.Controls.Toc"
              x:Class="Mapsui.Samples.XamarinForms.Views.MapView" 
              Title="Mapsui XamarinForms Sample" >
     <Grid>
@@ -11,16 +11,20 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <!--<toc:TableOfContents x:Name="TableOfContents" Grid.Column="0" />-->
-        <xamarinForms:MapControl x:Name="MapControl" Grid.Column="1" />
+        <Grid Grid.Column="0" BackgroundColor="Lime">
+            <toc:TableOfContents></toc:TableOfContents>
+        </Grid>
+        <Grid Grid.Column="1">
+            <xamarinForms:MapControl x:Name="MapControl"  />
 
-        <Grid Grid.Column="1" Margin="10" HorizontalOptions="Start" VerticalOptions="Start">
-            <Button x:Name="BtnToc" Style="{StaticResource RoundButton}" />
-            <Image Source="layers-icon.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" VerticalOptions="Center" >
-                <Image.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="BtnTocOnTapped"/>
-                </Image.GestureRecognizers>
-            </Image>
+            <Grid Margin="10" HorizontalOptions="Start" VerticalOptions="Start" BackgroundColor="{StaticResource Red}">
+                <!--<Button x:Name="BtnToc" Style="{StaticResource RoundButton}" />-->
+                <Image Source="layers-icon.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" Margin="7" >
+                    <Image.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="BtnTocOnTapped"/>
+                    </Image.GestureRecognizers>
+                </Image>
+            </Grid>
         </Grid>
     </Grid>
 </ContentPage>

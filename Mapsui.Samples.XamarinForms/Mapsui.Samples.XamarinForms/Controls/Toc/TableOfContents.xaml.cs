@@ -2,9 +2,9 @@
 {
 	public partial class TableOfContents
 	{
-		public TableOfContents()
+		public TableOfContents ()
 		{
-			InitializeComponent();
+			InitializeComponent ();
 		}
 	}
 }
