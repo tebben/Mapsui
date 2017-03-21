@@ -37,3 +37,6 @@ Release/
 /Tests/Mapsui.Rendering.Skia.Tests/Resources/Images/Generated
 *.user
 *.cache
+Mapsui.Samples.XamarinForms/Mapsui.Samples.XamarinForms.UWP/project.lock.json
+Mapsui.UI.Uwp/project.lock.json
+Samples/Mapsui.Samples.Uwp/project.lock.json

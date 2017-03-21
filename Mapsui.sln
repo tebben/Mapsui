@@ -82,6 +82,7 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms.projitems*{29bfdee4-971d-41bd-a3d9-ca32830e558b}*SharedItemsImports = 13
 		Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms.projitems*{8b710407-7993-4ea9-84a8-c417f3f06acc}*SharedItemsImports = 4
+		Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms.projitems*{b1744672-2b07-4ffe-b56c-47c16273918e}*SharedItemsImports = 4
 		Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms.projitems*{fec94cfa-e245-4864-84d8-f97e5c369244}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

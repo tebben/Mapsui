@@ -2,9 +2,9 @@
 
 namespace Mapsui.Samples.XamarinForms
 {
-	public partial class MainPage
-	{
-        public MainPage()
+    public partial class MapView
+    {
+        public MapView()
         {
             InitializeComponent();
         }

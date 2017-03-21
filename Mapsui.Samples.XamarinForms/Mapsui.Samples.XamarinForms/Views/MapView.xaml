@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:Mapsui.Samples.XamarinForms"
              xmlns:xamarinForms="clr-namespace:Mapsui.UI.XamarinForms;assembly=Mapsui.UI.XamarinForms"
-             x:Class="Mapsui.Samples.XamarinForms.MainPage" Title="Mapsui">
-    <xamarinForms:MapControl x:Name="MapControl"></xamarinForms:MapControl>
+             x:Class="Mapsui.Samples.XamarinForms.MapView" Title="Mapsui XamarinForms Sample">
+    <Grid>
+        <xamarinForms:MapControl x:Name="MapControl"></xamarinForms:MapControl>
+    </Grid>
 </ContentPage>

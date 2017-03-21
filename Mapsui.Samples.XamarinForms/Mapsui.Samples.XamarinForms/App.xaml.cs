@@ -1,20 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using Xamarin.Forms;
+﻿using Xamarin.Forms;
 
 namespace Mapsui.Samples.XamarinForms
 {
-	public partial class App : Application
+	public partial class App
 	{
 		public App ()
 		{
 			InitializeComponent();
-
-			MainPage = new Mapsui.Samples.XamarinForms.MainPage();
-		}
+            MainPage = new NavigationPage(new MapView());
+        }
 
 		protected override void OnStart ()
 		{
