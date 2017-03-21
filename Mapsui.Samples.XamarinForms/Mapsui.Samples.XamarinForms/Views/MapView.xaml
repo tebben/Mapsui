@@ -1,10 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+<ContentPage  xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:Mapsui.Samples.XamarinForms"
              xmlns:xamarinForms="clr-namespace:Mapsui.UI.XamarinForms;assembly=Mapsui.UI.XamarinForms"
-             x:Class="Mapsui.Samples.XamarinForms.MapView" Title="Mapsui XamarinForms Sample" >
+             xmlns:toc="clr-namespace:Mapsui.Samples.XamarinForms.Controls.Toc;assembly=Mapsui.Samples.XamarinForms.Android"
+             x:Class="Mapsui.Samples.XamarinForms.Views.MapView" 
+             Title="Mapsui XamarinForms Sample" >
     <Grid>
-        <xamarinForms:MapControl x:Name="MapControl"></xamarinForms:MapControl>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <!--<toc:TableOfContents x:Name="TableOfContents" Grid.Column="0" />-->
+        <xamarinForms:MapControl x:Name="MapControl" Grid.Column="1" />
+
+        <Grid Grid.Column="1" Margin="10" HorizontalOptions="Start" VerticalOptions="Start">
+            <Button x:Name="BtnToc" Style="{StaticResource RoundButton}" />
+            <Image Source="layers-icon.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" VerticalOptions="Center" >
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="BtnTocOnTapped"/>
+                </Image.GestureRecognizers>
+            </Image>
+        </Grid>
     </Grid>
 </ContentPage>

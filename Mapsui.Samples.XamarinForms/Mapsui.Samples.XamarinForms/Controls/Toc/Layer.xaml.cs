@@ -1,18 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Xamarin.Forms;
+﻿using Mapsui.Samples.XamarinForms.Models;
 
 namespace Mapsui.Samples.XamarinForms.Controls.Toc
 {
-	public partial class Layer : ContentView
+	public partial class Layer
 	{
-		public Layer ()
+		public Layer (LayerModel layerModel)
 		{
 			InitializeComponent ();
+		    BindingContext = layerModel;
 		}
 	}
 }

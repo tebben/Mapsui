@@ -8,6 +8,8 @@
             <Color x:Key="AccentColor2">#7697AA</Color>
             <Color x:Key="AccentColor3">#C2DFC7</Color>
             <Color x:Key="AccentColor4">#FFFFFF</Color>
+            <Color x:Key="White">#FFFFFF</Color>
+            <Color x:Key="Red">#b83023</Color>
             <Color x:Key="BackgroundColor">#33302E</Color>
             <Color x:Key="TextColorDark">#000000</Color>
             <Color x:Key="TextColorLight">#FFFFFF</Color>
@@ -20,6 +22,16 @@
                 <Setter Property="BackgroundColor" Value="{DynamicResource AccentColor2}" />
             </Style>
             
+            <Style x:Key="RoundButton" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{DynamicResource Red}" />
+                <Setter Property="TextColor" Value="{DynamicResource TextColorLight}"/>
+                <Setter Property="BorderColor" Value="{DynamicResource AccentColor1}" />
+                <Setter Property="BorderWidth" Value="1" />
+                <Setter Property="BorderRadius" Value="180" />
+                <Setter Property="WidthRequest" Value="40" />
+                <Setter Property="HeightRequest" Value="40" />
+                <Setter Property="FontSize" Value="10" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
