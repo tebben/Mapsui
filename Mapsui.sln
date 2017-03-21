@@ -186,7 +186,11 @@ Global
 		{8B710407-7993-4EA9-84A8-C417F3F06ACC}.Debug|AnyCPU.ActiveCfg = Debug|iPhoneSimulator
 		{8B710407-7993-4EA9-84A8-C417F3F06ACC}.Release|AnyCPU.ActiveCfg = Release|iPhoneSimulator
 		{B1744672-2B07-4FFE-B56C-47C16273918E}.Debug|AnyCPU.ActiveCfg = Debug|x86
+		{B1744672-2B07-4FFE-B56C-47C16273918E}.Debug|AnyCPU.Build.0 = Debug|x86
+		{B1744672-2B07-4FFE-B56C-47C16273918E}.Debug|AnyCPU.Deploy.0 = Debug|x86
 		{B1744672-2B07-4FFE-B56C-47C16273918E}.Release|AnyCPU.ActiveCfg = Release|x86
+		{B1744672-2B07-4FFE-B56C-47C16273918E}.Release|AnyCPU.Build.0 = Release|x86
+		{B1744672-2B07-4FFE-B56C-47C16273918E}.Release|AnyCPU.Deploy.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
