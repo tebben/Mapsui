@@ -35,6 +35,51 @@ namespace Mapsui.UI.XamarinForms
             var panRecognizer = new PanGestureRecognizer();
             panRecognizer.PanUpdated += PanRecognizerPanUpdated;
             GestureRecognizers.Add(panRecognizer);
+
+            //var tapGestureRecognizer = new TapGestureRecognizer{ NumberOfTapsRequired = 1 };
+            var pinchGestureRecognizer = new PinchGestureRecognizer();
+            pinchGestureRecognizer.PinchUpdated += PinchGestureRecognizerOnPinchUpdated;
+            GestureRecognizers.Add(pinchGestureRecognizer);
+        }
+
+        private Point _previousPoint = new Point();
+
+        private void PinchGestureRecognizerOnPinchUpdated(object sender, PinchGestureUpdatedEventArgs e)
+        {
+            if (e.Status == GestureStatus.Started)
+            {
+                _previousPoint = e.ScaleOrigin;
+                return;
+            }
+            if (e.Status == GestureStatus.Canceled)
+            {
+                _previousPoint = new Point();    
+                return;
+            }
+            if (e.Status == GestureStatus.Running)
+            {
+                if (!_previousPoint.IsEmpty)
+                {
+                    _map.Viewport.Transform(
+                        Width * e.ScaleOrigin.X,
+                        Height * e.ScaleOrigin.Y,
+                        Width * _previousPoint.X,
+                        Height * _previousPoint.Y,
+                        //_previousPoint.X,
+                        //_previousPoint.Y,
+                        //e.ScaleOrigin.Y,
+                        //e.ScaleOrigin.X,
+                        e.Scale);
+
+                    RefreshGraphics();
+
+                    _previousPoint = e.ScaleOrigin;
+                }
+            }
+            else if (e.Status == GestureStatus.Completed)
+            {
+                _previousPoint = new Point();
+            }
         }
 
         protected override void OnSizeAllocated(double width, double height)
