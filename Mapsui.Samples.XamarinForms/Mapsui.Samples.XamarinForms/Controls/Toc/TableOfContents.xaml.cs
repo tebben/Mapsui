@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Xamarin.Forms;
-
-namespace Mapsui.Samples.XamarinForms.Controls
+﻿namespace Mapsui.Samples.XamarinForms.Controls.Toc
 {
-	public partial class TableOfContents : ContentView
+	public partial class TableOfContents
 	{
 		public TableOfContents ()
 		{
