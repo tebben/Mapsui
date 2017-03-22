@@ -42,13 +42,13 @@
     <Folder Include="$(MSBuildThisFileDirectory)Data\" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Controls\Toc\TableOfContents.xaml">
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Controls\Toc\Layer.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Controls\Toc\Layer.xaml">
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Controls\Toc\TableOfContents.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </EmbeddedResource>

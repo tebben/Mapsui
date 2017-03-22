@@ -11,8 +11,8 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Grid Grid.Column="0" BackgroundColor="Lime">
-            <toc:TableOfContents></toc:TableOfContents>
+        <Grid Grid.Column="0" >
+            <toc:TableOfContents x:Name="Toc"  />
         </Grid>
         <Grid Grid.Column="1">
             <xamarinForms:MapControl x:Name="MapControl"  />

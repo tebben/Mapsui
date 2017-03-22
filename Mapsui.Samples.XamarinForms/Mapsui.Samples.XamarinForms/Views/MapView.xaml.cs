@@ -19,7 +19,7 @@ namespace Mapsui.Samples.XamarinForms.Views
 
         private void BtnTocOnTapped(object sender, EventArgs e)
         {
-            
+            //Toc.IsVisible = !Toc.IsVisible;
         }
     }
 }
