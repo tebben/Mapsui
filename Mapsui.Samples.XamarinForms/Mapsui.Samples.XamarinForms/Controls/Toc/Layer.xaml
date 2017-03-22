@@ -1,5 +1,23 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<ContentView xmlns="http://xamarin.com/schemas/2014/forms" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Mapsui.Samples.XamarinForms.Controls.Toc.Layer">
-  <ContentView.Content>
-  </ContentView.Content>
-</ContentView>
+<ViewCell 
+    xmlns="http://xamarin.com/schemas/2014/forms" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" 
+    x:Class="Mapsui.Samples.XamarinForms.Controls.Toc.Layer" >
+    <ContentView VerticalOptions="Start" Margin="3">
+        <ContentView Style="{StaticResource BorderStyle}" >
+            <ContentView Style="{StaticResource InternalViewStyle}">
+                <Grid HorizontalOptions="StartAndExpand" VerticalOptions="Start" >
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="50"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Switch Grid.Row="0" Grid.Column="0" IsToggled="{Binding Path=Enabled, Mode=TwoWay}" />
+                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding Path=Title}" VerticalOptions="Center"/>
+                </Grid>
+            </ContentView>
+        </ContentView>
+    </ContentView>
+</ViewCell>

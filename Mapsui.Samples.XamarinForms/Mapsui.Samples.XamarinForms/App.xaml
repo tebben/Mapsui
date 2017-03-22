@@ -8,7 +8,10 @@
             <Color x:Key="AccentColor2">#7697AA</Color>
             <Color x:Key="AccentColor3">#C2DFC7</Color>
             <Color x:Key="AccentColor4">#FFFFFF</Color>
+            <Color x:Key="BorderColor">#000000</Color>
             <Color x:Key="White">#FFFFFF</Color>
+            <Color x:Key="Gray">#eeeeee</Color>
+            <Color x:Key="DarkGray">#cecece</Color>
             <Color x:Key="Red">#b83023</Color>
             <Color x:Key="BackgroundColor">#33302E</Color>
             <Color x:Key="TextColorDark">#000000</Color>
@@ -21,7 +24,18 @@
             <Style x:Key="BackgroundStyle" TargetType="VisualElement">
                 <Setter Property="BackgroundColor" Value="{DynamicResource AccentColor2}" />
             </Style>
-            
+
+            <Style x:Key="InternalViewStyle" TargetType="ContentView">
+                <Setter Property="BackgroundColor" Value="{StaticResource DarkGray}"/>
+                <Setter Property="VerticalOptions" Value="Fill"/>
+                <Setter Property="Padding" Value="2"></Setter>
+            </Style>
+
+            <Style x:Key="BorderStyle" TargetType="ContentView">
+                <Setter Property="BackgroundColor" Value="{StaticResource AccentColor2}"/>
+                <Setter Property="Padding" Value="1,1,1,1"></Setter>
+            </Style>
+
             <Style x:Key="RoundButton" TargetType="Button">
                 <Setter Property="BackgroundColor" Value="{DynamicResource Red}" />
                 <Setter Property="TextColor" Value="{DynamicResource TextColorLight}"/>

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Mapsui.Layers;
 
@@ -8,10 +9,16 @@ namespace Mapsui.Samples.XamarinForms.Models
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public string Id { get; }
+
         private string _title;
-        private bool _visible;
-        private double _opacity;
-        private ILayer _layer;
+        private bool _enabled;
+        private ILayer _layer;        
+
+        public LayerModel()
+        {
+            Id = Guid.NewGuid().ToString();
+        }
 
         public string Title
         {
@@ -26,29 +33,18 @@ namespace Mapsui.Samples.XamarinForms.Models
             }
         }
 
-        public bool Visible
+        public bool Enabled
         {
-            get
-            {
-                return _visible;
-            }
+            get { return _enabled; }
             set
             {
-                _visible = value;
+                _enabled = value;
                 OnPropertyChanged();
-            }
-        }
 
-        public double Opacity
-        {
-            get
-            {
-                return _opacity;
-            }
-            set
-            {
-                _opacity = value;
-                OnPropertyChanged();
+                if (Layer != null)
+                {
+                    Layer.Enabled = _enabled;
+                }
             }
         }
 
@@ -61,6 +57,8 @@ namespace Mapsui.Samples.XamarinForms.Models
             set
             {
                 _layer = value;
+                _layer.Tag = Id;
+                _layer.Enabled = _enabled;
                 OnPropertyChanged();
             }
         }

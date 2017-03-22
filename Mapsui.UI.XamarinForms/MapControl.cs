@@ -14,7 +14,7 @@ using Xamarin.Forms;
 namespace Mapsui.UI.XamarinForms
 {
     public class MapControl : Grid, IMapControl
-    {
+    {        
         private bool _invalid = true;
         private Map _map;
         private double _toResolution = double.NaN;
@@ -28,7 +28,7 @@ namespace Mapsui.UI.XamarinForms
             Children.Add(RenderElement);
             RenderElement.PaintSurface += SKElementOnPaintSurface;
             Map = new Map();
-
+            
             var panRecognizer = new PanGestureRecognizer();
             panRecognizer.PanUpdated += PanRecognizerPanUpdated;
             GestureRecognizers.Add(panRecognizer);

@@ -1,8 +1,16 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<ContentView xmlns="http://xamarin.com/schemas/2014/forms" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Mapsui.Samples.XamarinForms.Controls.Toc.TableOfContents">
+<ContentView xmlns="http://xamarin.com/schemas/2014/forms" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:Mapsui.Samples.XamarinForms.Controls.Toc;assembly=Mapsui.Samples.XamarinForms.UWP"
+             x:Class="Mapsui.Samples.XamarinForms.Controls.Toc.TableOfContents">
   <ContentView.Content>
-      <Grid WidthRequest="250" HorizontalOptions="Start" VerticalOptions="StartAndExpand" BackgroundColor="{StaticResource AccentColor1}">
-          
-      </Grid>
+        <Grid WidthRequest="250" HorizontalOptions="Start" VerticalOptions="StartAndExpand" BackgroundColor="{StaticResource Gray}">
+            <ListView ItemsSource="{Binding}" >
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <local:Layer />
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+             </ListView>
+        </Grid>
   </ContentView.Content>
 </ContentView>

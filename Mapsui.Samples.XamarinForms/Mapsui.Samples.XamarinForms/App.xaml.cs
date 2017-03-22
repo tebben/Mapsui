@@ -8,13 +8,17 @@ namespace Mapsui.Samples.XamarinForms
 		public App ()
 		{
 			InitializeComponent();
-		    var navPage = new NavigationPage(new MapView())
-		    {
-		        BarBackgroundColor = (Color) Resources["AccentColor2"],
+
+            var main = new Main();
+            var mapView = new MapView { BindingContext = main };
+
+            var navPage = new NavigationPage(mapView)
+            {
+                BarBackgroundColor = (Color)Resources["AccentColor2"],
                 BarTextColor = (Color)Resources["TextColorLight"]
             };
 
-		    MainPage = navPage;
+            MainPage = navPage;
         }
 
 		protected override void OnStart ()
