@@ -21,7 +21,7 @@ namespace Mapsui.Samples.XamarinForms
 
             Layers = new ObservableCollection<LayerModel>();
             Layers.CollectionChanged += LayersCollectionChanged;         
-            foreach (var layerModel in TestData.GetLayers().Reverse())
+            foreach (var layerModel in TestData.GetLayers())
             {                
                 Layers.Add(layerModel);
             }

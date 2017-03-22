@@ -151,7 +151,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\Drawable\layers-icon.png" />
+    <AndroidResource Include="Resources\Drawable\layersicon.png" />
   </ItemGroup>
   <Import Project="..\Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms.projitems" Label="Shared" Condition="Exists('..\Mapsui.Samples.XamarinForms\Mapsui.Samples.XamarinForms.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />

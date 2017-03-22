@@ -23,7 +23,7 @@
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Tapped="BtnTocOnTapped"/>
                 </Grid.GestureRecognizers>
-                <Image Source="layers-icon.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" Margin="7" >
+                <Image Source="layersicon.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" Margin="7" >
                     <Image.GestureRecognizers>
                         <TapGestureRecognizer Tapped="BtnTocOnTapped"/>
                     </Image.GestureRecognizers>
