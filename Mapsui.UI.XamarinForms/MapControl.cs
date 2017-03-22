@@ -15,90 +15,83 @@ namespace Mapsui.UI.XamarinForms
 {
     public class MapControl : Grid, IMapControl
     {
-       // private static readonly BindableProperty ResolutionProperty =
-    //BindableProperty.Create("Resolution", typeof(double), typeof(MapControl), null, propertyChanged: OnResolutionChanged);
-
         private bool _invalid = true;
         private Map _map;
         private double _toResolution = double.NaN;
         private bool _viewportInitialized;
         private double _previousWidth;
         private double _previousHeight;
+        private Point _previousPoint;
 
         public MapControl()
         {
             Children.Add(RenderElement);
             RenderElement.PaintSurface += SKElementOnPaintSurface;
-            RenderElement.BackgroundColor = Color.Fuchsia;
             Map = new Map();
 
             var panRecognizer = new PanGestureRecognizer();
             panRecognizer.PanUpdated += PanRecognizerPanUpdated;
             GestureRecognizers.Add(panRecognizer);
 
-            //var tapGestureRecognizer = new TapGestureRecognizer{ NumberOfTapsRequired = 1 };
             var pinchGestureRecognizer = new PinchGestureRecognizer();
             pinchGestureRecognizer.PinchUpdated += PinchGestureRecognizerOnPinchUpdated;
             GestureRecognizers.Add(pinchGestureRecognizer);
+
+            SizeChanged += MapControlSizeChanged;
         }
 
-        private Point _previousPoint = new Point();
+        private async void MapControlSizeChanged(object sender, EventArgs e)
+        {
+            await Task.Delay(100);
+            await Task.Factory.StartNew(() => {
+                UpdateSize();
+                RefreshGraphics();
+            });            
+        }        
 
         private void PinchGestureRecognizerOnPinchUpdated(object sender, PinchGestureUpdatedEventArgs e)
         {
-            if (e.Status == GestureStatus.Started)
-            {
-                _previousPoint = e.ScaleOrigin;
-                return;
-            }
-            if (e.Status == GestureStatus.Canceled)
-            {
-                _previousPoint = new Point();    
-                return;
-            }
-            if (e.Status == GestureStatus.Running)
-            {
-                if (!_previousPoint.IsEmpty)
-                {
-                    _map.Viewport.Transform(
-                        Width * e.ScaleOrigin.X,
-                        Height * e.ScaleOrigin.Y,
-                        Width * _previousPoint.X,
-                        Height * _previousPoint.Y,
-                        //_previousPoint.X,
-                        //_previousPoint.Y,
-                        //e.ScaleOrigin.Y,
-                        //e.ScaleOrigin.X,
-                        e.Scale);
-
-                    RefreshGraphics();
-
+            switch (e.Status) {
+                case GestureStatus.Started:
                     _previousPoint = e.ScaleOrigin;
-                }
-            }
-            else if (e.Status == GestureStatus.Completed)
-            {
-                _previousPoint = new Point();
+                    return;
+                case GestureStatus.Canceled:
+                    _previousPoint = new Point();    
+                    return;
+                case GestureStatus.Running:
+                    if (!_previousPoint.IsEmpty)
+                    {
+                        _map.Viewport.Transform(
+                            Width * e.ScaleOrigin.X,
+                            Height * e.ScaleOrigin.Y,
+                            Width * _previousPoint.X,
+                            Height * _previousPoint.Y,
+                            e.Scale);
+
+                        RefreshGraphics();
+
+                        _previousPoint = e.ScaleOrigin;
+                    }
+                    break;
+                case GestureStatus.Completed:
+                    _previousPoint = new Point();
+                    break;
             }
         }
 
         protected override void OnSizeAllocated(double width, double height)
         {
             base.OnSizeAllocated(width, height);
-            if (_previousWidth!= width || _previousHeight != height)
-            {
-                _previousWidth = width;
-                _previousHeight = height;
-                RefreshGraphics();
-            }
+            if (_previousWidth == width && _previousHeight == height) return;
+
+            _previousWidth = width;
+            _previousHeight = height;
+            RefreshGraphics();
         }
 
         private void PanRecognizerPanUpdated(object sender, PanUpdatedEventArgs e)
         {
             //System.Diagnostics.Debug.WriteLine($"Action Pos x: {e.TotalX} y: { e.TotalY}");
-
-
-            //var pos = new Point(Math.Round(e.TotalX, 3), Math.Round(e.TotalY, 3));
             var pos = new Point(e.TotalX, e.TotalY);
 
             if (pos == default(Point))
@@ -126,8 +119,7 @@ namespace Mapsui.UI.XamarinForms
                 }
 
                 _currentMousePosition = pos;
-                Map.Viewport.Transform(_currentMousePosition.X, _currentMousePosition.Y, _previousMousePosition.X,
-                    _previousMousePosition.Y);
+                Map.Viewport.Transform(_currentMousePosition.X, _currentMousePosition.Y, _previousMousePosition.X, _previousMousePosition.Y);
                 _previousMousePosition = _currentMousePosition;
                 _map.ViewChanged(false);
                 OnViewChanged(true);
@@ -235,9 +227,7 @@ namespace Mapsui.UI.XamarinForms
         public void RefreshGraphics()
         {
             _invalid = true;
-            //Dispatcher.BeginInvoke(new Action(InvalidateVisual));
 
-            // nodig?? invoke nodig??
             Device.BeginInvokeOnMainThread(() =>
             {
                 RenderElement.InvalidateSurface();
@@ -292,8 +282,6 @@ namespace Mapsui.UI.XamarinForms
             //OnViewChanged();
             //RefreshGraphics();
         }
-
-
 
         private void MapControlLoaded()
         {

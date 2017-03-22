@@ -6,19 +6,20 @@
              xmlns:toc="clr-namespace:Mapsui.Samples.XamarinForms.Controls.Toc"
              x:Class="Mapsui.Samples.XamarinForms.Views.MapView" 
              Title="Mapsui XamarinForms Sample" >
-    <Grid>
+    <Grid ColumnSpacing="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid Grid.Column="0" >
-            <toc:TableOfContents x:Name="Toc"  />
+            <toc:TableOfContents x:Name="Toc" IsVisible="False"  />
         </Grid>
-        <Grid Grid.Column="1">
+        <Grid Grid.Column="1" >
             <xamarinForms:MapControl x:Name="MapControl"  />
-
             <Grid Margin="10" HorizontalOptions="Start" VerticalOptions="Start" BackgroundColor="{StaticResource Red}">
-                <!--<Button x:Name="BtnToc" Style="{StaticResource RoundButton}" />-->
                 <Image Source="layers-icon.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" Margin="7" >
                     <Image.GestureRecognizers>
                         <TapGestureRecognizer Tapped="BtnTocOnTapped"/>
