@@ -31,8 +31,6 @@ namespace Mapsui.Samples.Android
 			global::Mapsui.UI.Android.Resource.String.Hello = global::Mapsui.Samples.Android.Resource.String.Hello;
 			global::Mapsui.UI.Android.Resource.Styleable.start_with_openstreetmap_style = global::Mapsui.Samples.Android.Resource.Styleable.start_with_openstreetmap_style;
 			global::Mapsui.UI.Android.Resource.Styleable.start_with_openstreetmap_style_start_with_openstreetmap = global::Mapsui.Samples.Android.Resource.Styleable.start_with_openstreetmap_style_start_with_openstreetmap;
-			global::SQLite.Net.Platform.XamarinAndroid.Resource.String.ApplicationName = global::Mapsui.Samples.Android.Resource.String.ApplicationName;
-			global::SQLite.Net.Platform.XamarinAndroid.Resource.String.Hello = global::Mapsui.Samples.Android.Resource.String.Hello;
 		}
 		
 		public partial class Attribute
@@ -71,7 +69,10 @@ namespace Mapsui.Samples.Android
 		{
 			
 			// aapt resource value: 0x7f050000
-			public const int mapcontrol = 2131034112;
+			public const int mainLayout = 2131034112;
+			
+			// aapt resource value: 0x7f050001
+			public const int mapcontrol = 2131034113;
 			
 			static Id()
 			{

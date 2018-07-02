@@ -10,8 +10,8 @@ namespace Mapsui.Rendering
 {
     public static class VisibleFeatureIterator
     {
-        public static void IterateLayers(IViewport viewport, IEnumerable<ILayer> layers,
-            Action<IViewport, IStyle, IFeature> callback)
+        public static void IterateLayers(IReadOnlyViewport viewport, IEnumerable<ILayer> layers,
+            Action<IReadOnlyViewport, IStyle, IFeature, float> callback)
         {
             foreach (var layer in layers)
             {
@@ -23,12 +23,12 @@ namespace Mapsui.Rendering
             }
         }
 
-        private static void IterateLayer(IViewport viewport, ILayer layer,
-            Action<IViewport, IStyle, IFeature> callback)
+        private static void IterateLayer(IReadOnlyViewport viewport, ILayer layer,
+            Action<IReadOnlyViewport, IStyle, IFeature, float> callback)
         {
             var features = layer.GetFeaturesInView(viewport.Extent, viewport.Resolution).ToList();
 
-            var layerStyles = layer.Style is StyleCollection ? (layer.Style as StyleCollection).ToArray() : new [] {layer.Style};
+            var layerStyles = ToArray(layer);
             foreach (var layerStyle in layerStyles)
             {
                 var style = layerStyle; // This is the default that could be overridden by an IThemeStyle
@@ -36,23 +36,43 @@ namespace Mapsui.Rendering
                 foreach (var feature in features)
                 {
                     if (layerStyle is IThemeStyle) style = (layerStyle as IThemeStyle).GetStyle(feature);
-                    if ((style == null) || (style.Enabled == false) || (style.MinVisible > viewport.Resolution) || (style.MaxVisible < viewport.Resolution)) continue;
+                    if (style == null || style.Enabled == false || style.MinVisible > viewport.Resolution || style.MaxVisible < viewport.Resolution) continue;
 
-                    callback(viewport, style, feature);
+                    if (style is StyleCollection styles) // The ThemeStyle can again return a StyleCollection
+                    {
+                        foreach (var s in styles)
+                        {
+                            callback(viewport, s, feature, (float)layer.Opacity);
+                        }
+                    }
+                    else
+                    {
+                        callback(viewport, style, feature, (float)layer.Opacity);
+                    }
                 }
             }
 
             foreach (var feature in features)
             {
-                var featureStyles = feature.Styles ?? Enumerable.Empty<IStyle>();
+                var featureStyles = feature.Styles ?? Enumerable.Empty<IStyle>(); // null check
                 foreach (var featureStyle in featureStyles)
                 {
                     if (feature.Styles != null && featureStyle.Enabled)
                     {
-                        callback(viewport, featureStyle, feature);
+                        callback(viewport, featureStyle, feature, (float)layer.Opacity);
                     }
                 }
             }
+        }
+
+        private static IStyle[] ToArray(IStyle style)
+        {
+            return (style as StyleCollection)?.ToArray() ?? new[] { style };
+        }
+
+        private static IStyle[] ToArray(ILayer layer)
+        {
+            return (layer.Style as StyleCollection)?.ToArray() ?? new [] {layer.Style};
         }
     }
 }

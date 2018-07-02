@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+// ReSharper disable NonReadonlyMemberInGetHashCode // todo: Fix this real issue
 namespace Mapsui.Geometries
 {
     /// <summary>
@@ -37,6 +38,14 @@ namespace Mapsui.Geometries
             TopLeft = new Point();
             TopRight = new Point();
             BottomRight = new Point();
+        }
+
+        public Quad(Quad quad)
+        {
+            BottomLeft = quad.BottomLeft;
+            TopLeft = quad.TopLeft;
+            TopRight = quad.TopRight;
+            BottomRight = quad.BottomRight;
         }
 
         public Quad(Point bottomLeft, Point topLeft, Point topRight, Point bottomRight)

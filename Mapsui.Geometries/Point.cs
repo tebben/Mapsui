@@ -18,6 +18,7 @@
 using System;
 using Mapsui.Geometries.Utilities;
 
+// ReSharper disable NonReadonlyMemberInGetHashCode // todo: Fix this real issue
 namespace Mapsui.Geometries
 {
     /// <summary>
@@ -68,7 +69,7 @@ namespace Mapsui.Geometries
         /// </summary>
         protected bool SetIsEmpty
         {
-            set { _isEmpty = value; }
+            set => _isEmpty = value;
         }
 
         /// <summary>
@@ -140,10 +141,7 @@ namespace Mapsui.Geometries
         /// <summary>
         ///     Returns the number of ordinates for this point
         /// </summary>
-        public virtual int NumOrdinates
-        {
-            get { return 2; }
-        }
+        public virtual int NumOrdinates => 2;
 
         /// <summary>
         ///     Comparator used for ordering point first by ascending X, then by ascending Y.
@@ -286,7 +284,7 @@ namespace Mapsui.Geometries
         }
 
         /// <summary>
-        ///     Returns the distance between this point and a <see cref="BoundingBox" />
+        ///     Returns the distance between this point and a <see cref="Geometries.BoundingBox" />
         /// </summary>
         /// <param name="box"></param>
         /// <returns></returns>
@@ -299,10 +297,7 @@ namespace Mapsui.Geometries
         ///     The minimum bounding box for this Geometry.
         /// </summary>
         /// <returns></returns>
-        public override BoundingBox GetBoundingBox()
-        {
-            return new BoundingBox(X, Y, X, Y);
-        }
+        public override BoundingBox BoundingBox => new BoundingBox(X, Y, X, Y);
 
         /// <summary>
         ///     Calculates a new point by rotating this point clockwise about the specified center point
@@ -336,6 +331,17 @@ namespace Mapsui.Geometries
         public Point Rotate(double degrees, Point center)
         {
             return Rotate(degrees, center.X, center.Y);
+        }
+
+        /// <summary>
+        ///     Calculates a new point by translating this point by the specified offset
+        /// </summary>
+        /// <param name="offsetX">Offset to translate in X axis</param>
+        /// <param name="offsetY">Offset to translate in Y axis</param>
+        /// <returns>Returns the offset point</returns>
+        public Point Offset(double offsetX, double offsetY)
+        {
+            return new Point(X + offsetX, Y + offsetY);
         }
 
         public override bool Contains(Point point)

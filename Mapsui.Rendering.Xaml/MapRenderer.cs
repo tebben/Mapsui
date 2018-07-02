@@ -11,11 +11,13 @@ using Mapsui.Logging;
 using Color = Mapsui.Styles.Color;
 using Polygon = Mapsui.Geometries.Polygon;
 using System.Threading;
-using Mapsui.Utilities;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Shapes;
+using Mapsui.Rendering.Xaml.XamlWidgets;
+using Mapsui.Widgets;
+using Mapsui.Widgets.ScaleBar;
+using Mapsui.Widgets.Zoom;
 using XamlMedia = System.Windows.Media;
 
 namespace Mapsui.Rendering.Xaml
@@ -24,32 +26,50 @@ namespace Mapsui.Rendering.Xaml
     {
         private readonly SymbolCache _symbolCache = new SymbolCache();
         public ISymbolCache SymbolCache => _symbolCache;
+        public IDictionary<Type, IWidgetRenderer> WidgetRenders { get; } = new Dictionary<Type, IWidgetRenderer>();
 
         static MapRenderer()
         {
             DefaultRendererFactory.Create = () => new MapRenderer();
         }
 
-        public void Render(object target, IViewport viewport, IEnumerable<ILayer> layers, Color background)
+        public MapRenderer()
         {
-            Render((Canvas) target, viewport, layers, background, _symbolCache, false);
+            WidgetRenders[typeof(Hyperlink)] = new HyperlinkWidgetRenderer();
+            WidgetRenders[typeof(ScaleBarWidget)] = new ScaleBarWidgetRenderer();
+            WidgetRenders[typeof(ZoomInOutWidget)] = new ZoomInOutWidgetRenderer();
         }
 
-        private static void Render(Canvas target, IViewport viewport, IEnumerable<ILayer> layers,
-            Color background, SymbolCache symbolCache, bool rasterizing)
+        public void Render(object target, Map map, IReadOnlyViewport viewport, IEnumerable<ILayer> layers,
+            IEnumerable<IWidget> widgets, Color background = null)
         {
-            target.BeginInit();
+            var allWidgets = layers.Select(l => l.Attribution).ToList().Where(w => w != null).Concat(widgets).ToList();
 
-            target.Background = background == null ? null : new XamlMedia.SolidColorBrush {Color = background.ToXaml()};
+            RenderTypeSave((Canvas) target, map, viewport, layers, allWidgets, background);
+        }
+        private void RenderTypeSave(Canvas canvas, Map map, IReadOnlyViewport viewport, IEnumerable<ILayer> layers, 
+            IEnumerable<IWidget> widgets, Color background = null)
+        {
+            Clear(canvas, background);
+            if (viewport.Initialized) Render(canvas, viewport, layers);
+            Render(canvas, map, viewport, widgets);
+        }
 
-            target.Visibility = Visibility.Collapsed;
+        private void Render(Canvas target, IReadOnlyViewport viewport, IEnumerable<ILayer> layers)
+        {
+            Render(target, viewport, layers,  _symbolCache, false);
+        }
 
-            foreach (var child in target.Children)
-            {
-                (child as Canvas)?.Children.Clear();
-            }
+        private void Render(object target, Map map, IReadOnlyViewport viewport, IEnumerable<IWidget> widgets)
+        {
+            WidgetRenderer.Render(target, map, viewport, widgets, WidgetRenders);
+        }
 
-            target.Children.Clear();
+        private static void Render(Canvas canvas, IReadOnlyViewport viewport, IEnumerable<ILayer> layers,
+            SymbolCache symbolCache, bool rasterizing)
+        {
+            canvas.BeginInit();
+            canvas.Visibility = Visibility.Collapsed;
 
             layers = layers.ToList();
 
@@ -59,31 +79,42 @@ namespace Mapsui.Rendering.Xaml
                 if (layer.MinVisible > viewport.Resolution) continue;
                 if (layer.MaxVisible < viewport.Resolution) continue;
 
-                RenderLayer(target, viewport, layer, symbolCache, rasterizing);
+                RenderLayer(canvas, viewport, layer, symbolCache, rasterizing);
             }
-            target.Arrange(new Rect(0, 0, viewport.Width, viewport.Height));
-            target.Visibility = Visibility.Visible;
-            
-            if (DeveloperTools.DeveloperMode)
-            {
-                DrawDebugInfo(target, layers);
-            }
+            canvas.Arrange(new Rect(0, 0, viewport.Width, viewport.Height));
 
-            target.EndInit();
+            canvas.Visibility = Visibility.Visible;
+            canvas.EndInit();
         }
 
-        public MemoryStream RenderToBitmapStream(IViewport viewport, IEnumerable<ILayer> layers, Color background = null)
+        private static void Clear(Canvas canvas, Color background)
+        {
+            canvas.Background = ToBackground(background);
+
+            foreach (var child in canvas.Children)
+            {
+                (child as Canvas)?.Children.Clear();
+            }
+
+            canvas.Children.Clear();
+        }
+
+        private static XamlMedia.SolidColorBrush ToBackground(Color background)
+        {
+            return background == null ? null : new XamlMedia.SolidColorBrush {Color = background.ToXaml()};
+        }
+
+        public MemoryStream RenderToBitmapStream(IReadOnlyViewport viewport, IEnumerable<ILayer> layers, Color background = null)
         {
             MemoryStream bitmapStream = null;
-            RunMethodOnStaThread(() => bitmapStream = RenderToBitmapStreamStatic(viewport, layers, _symbolCache, background));
+            RunMethodOnStaThread(() => bitmapStream = RenderToBitmapStreamStatic(viewport, layers, _symbolCache));
             return bitmapStream;
         }
         
-        private static MemoryStream RenderToBitmapStreamStatic(IViewport viewport, IEnumerable<ILayer> layers, SymbolCache symbolCache,
-            Color background)
+        private static MemoryStream RenderToBitmapStreamStatic(IReadOnlyViewport viewport, IEnumerable<ILayer> layers, SymbolCache symbolCache)
         {
             var canvas = new Canvas();
-            Render(canvas, viewport, layers, background, symbolCache, true);
+            Render(canvas, viewport, layers, symbolCache, true);
             var bitmapStream = BitmapRendering.BitmapConverter.ToBitmapStream(canvas, (int)viewport.Width, (int)viewport.Height);
             canvas.Children.Clear();
             canvas.Dispatcher.InvokeShutdown();
@@ -99,14 +130,14 @@ namespace Mapsui.Rendering.Xaml
             thread.Join();
         }
 
-        public static void RenderLayer(Canvas target, IViewport viewport, ILayer layer, SymbolCache symbolCache, bool rasterizing = false)
+        public static void RenderLayer(Canvas target, IReadOnlyViewport viewport, ILayer layer, SymbolCache symbolCache, bool rasterizing = false)
         {
             if (layer.Enabled == false) return;
 
             target.Children.Add(RenderLayerStatic(viewport, layer, symbolCache, rasterizing));
         }
 
-        private static Canvas RenderLayerStatic(IViewport viewport, ILayer layer, SymbolCache symbolCache, bool rasterizing = false)
+        private static Canvas RenderLayerStatic(IReadOnlyViewport viewport, ILayer layer, SymbolCache symbolCache, bool rasterizing = false)
         {
             // todo:
             // find solution for try catch. Sometimes this method will throw an exception
@@ -121,6 +152,11 @@ namespace Mapsui.Rendering.Xaml
             {
                 var features = layer.GetFeaturesInView(viewport.Extent, viewport.Resolution).ToList();
                 var layerStyles = BaseLayer.GetLayerStyles(layer);
+
+                // If rasterizing (which is usually on a background thread) create a new SymbolCache 
+                // just for this rendering because cross thread access is not allowed in WPF.
+
+                if (rasterizing) symbolCache = new SymbolCache();
                 
                 foreach (var layerStyle in layerStyles)
                 {
@@ -129,10 +165,12 @@ namespace Mapsui.Rendering.Xaml
                     foreach (var feature in features)
                     {
                         if (layerStyle is IThemeStyle) style = (layerStyle as IThemeStyle).GetStyle(feature);
-                        if ((style == null) || (style.Enabled == false) || (style.MinVisible > viewport.Resolution) ||
-                            (style.MaxVisible < viewport.Resolution)) continue;
+                        if (style == null || 
+                            style.Enabled == false || 
+                            style.MinVisible > viewport.Resolution ||
+                            style.MaxVisible < viewport.Resolution) continue;
 
-                        RenderFeature(viewport, canvas, feature, style, rasterizing, symbolCache);
+                        RenderFeature(viewport, canvas, feature, style, symbolCache, rasterizing);
                     }
                 }
 
@@ -140,15 +178,15 @@ namespace Mapsui.Rendering.Xaml
                 {
                     var styles = feature.Styles ?? Enumerable.Empty<IStyle>();
                     foreach (var style in styles)
-                        if ((feature.Styles != null) && style.Enabled)
-                            RenderFeature(viewport, canvas, feature, style, rasterizing, symbolCache);
+                        if (feature.Styles != null && style.Enabled)
+                            RenderFeature(viewport, canvas, feature, style, symbolCache, rasterizing);
                 }
 
                 return canvas;
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error, "Unexpected error in renderer", ex);
+                Logger.Log(LogLevel.Error, "Unexpected error in xaml renderer", ex);
                 return canvas;
                 // If exception happens inside RenderFeature function after 
                 // at -least one child has been added to the canvas,
@@ -162,28 +200,28 @@ namespace Mapsui.Rendering.Xaml
             }
         }
 
-        private static void RenderFeature(IViewport viewport, Canvas canvas, IFeature feature, IStyle style,
-            bool rasterizing, SymbolCache symbolCache)
+        private static void RenderFeature(IReadOnlyViewport viewport, Canvas canvas, IFeature feature, IStyle style, SymbolCache symbolCache, bool rasterizing)
         {
             if (style is LabelStyle)
             {
                 var labelStyle = (LabelStyle) style;
-                canvas.Children.Add(SingleLabelRenderer.RenderLabel(feature.Geometry.GetBoundingBox().GetCentroid(),
-                    labelStyle, viewport, labelStyle.GetLabelText(feature)));
+                var labelText = labelStyle.GetLabelText(feature);
+                if (string.IsNullOrEmpty(labelText)) return;
+                canvas.Children.Add(LabelRenderer.RenderLabel(feature.Geometry.BoundingBox.Centroid,
+                    labelStyle, viewport, labelText));
             }
             else
             {
-                var renderedGeometry = feature.RenderedGeometry.ContainsKey(style)
-                    ? feature.RenderedGeometry[style] as Shape
-                    : null;
-                if (renderedGeometry == null)
+                Shape renderedGeometry;
+                if (feature.RenderedGeometry.TryGetValue(style, out var cachedObject))
                 {
-                    renderedGeometry = RenderGeometry(viewport, style, feature, symbolCache);
-                    if (!rasterizing) feature.RenderedGeometry[style] = renderedGeometry;
+                    renderedGeometry = (Shape)cachedObject; // Has to be Shape
+                    PositionGeometry(renderedGeometry, viewport, style, feature);
                 }
                 else
                 {
-                    PositionGeometry(renderedGeometry, viewport, style, feature);
+                    renderedGeometry = RenderGeometry(viewport, style, feature, symbolCache);
+                    if (!rasterizing) feature.RenderedGeometry[style] = renderedGeometry;
                 }
 
                 if (!canvas.Children.Contains(renderedGeometry))
@@ -192,7 +230,7 @@ namespace Mapsui.Rendering.Xaml
             }
         }
 
-        private static Shape RenderGeometry(IViewport viewport, IStyle style, IFeature feature,
+        private static Shape RenderGeometry(IReadOnlyViewport viewport, IStyle style, IFeature feature,
             SymbolCache symbolCache)
         {
             if (feature.Geometry is Geometries.Point)
@@ -212,7 +250,7 @@ namespace Mapsui.Rendering.Xaml
             return null;
         }
 
-        private static void PositionGeometry(Shape renderedGeometry, IViewport viewport, IStyle style, IFeature feature)
+        private static void PositionGeometry(Shape renderedGeometry, IReadOnlyViewport viewport, IStyle style, IFeature feature)
         {
             if (feature.Geometry is Geometries.Point)
                 PointRenderer.PositionPoint(renderedGeometry, feature.Geometry as Geometries.Point, style, viewport);
@@ -227,34 +265,7 @@ namespace Mapsui.Rendering.Xaml
             else if (feature.Geometry is MultiPolygon)
                 GeometryRenderer.PositionGeometry(renderedGeometry, viewport);
             else if (feature.Geometry is IRaster)
-                GeometryRenderer.PositionRaster(renderedGeometry, feature.Geometry.GetBoundingBox(), viewport);
-        }
-
-        private static void DrawDebugInfo(Canvas canvas, IEnumerable<ILayer> layers)
-        {
-            var lineCounter = 1;
-            const float tabWidth = 40f;
-            const float lineHeight = 40f;
-
-            foreach (var layer in layers)
-            {
-                var textBox = AddTextBox(layer.ToString(), tabWidth, lineHeight * (lineCounter++));
-                canvas.Children.Add(textBox);
-
-                if (layer is ITileLayer)
-                {
-                    var text = "Tiles in memory: " + (layer as ITileLayer).MemoryCache.TileCount.ToString(CultureInfo.InvariantCulture);
-                    canvas.Children.Add(AddTextBox(text, tabWidth, lineHeight * lineCounter++));
-                }
-            }
-        }
-
-        private static TextBox AddTextBox(string text, float x, float y)
-        {
-            var textBox = new TextBox { Text = text };
-            Canvas.SetLeft(textBox, x);
-            Canvas.SetTop(textBox, y);
-            return textBox;
+                GeometryRenderer.PositionRaster(renderedGeometry, feature.Geometry.BoundingBox, viewport);
         }
     }
 }

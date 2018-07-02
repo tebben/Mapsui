@@ -1,12 +1,16 @@
 using System;
 using Mapsui.Utilities;
 
+// ReSharper disable NonReadonlyMemberInGetHashCode // todo: Fix this real issue
 namespace Mapsui.Styles
 {
     public enum SymbolType
     {
         Ellipse,
-        Rectangle
+        Rectangle,
+        Triangle,
+        Bitmap,
+        Svg
     }
 
     public enum UnitType
@@ -25,18 +29,7 @@ namespace Mapsui.Styles
         {
             SymbolOffset = new Offset();
             SymbolScale = 1f;
-            Opacity = 1f;
             BitmapId = -1;
-        }
-
-        /// <summary>
-        ///     Symbol used for rendering points
-        /// </summary>
-        [Obsolete("Use BitmapID and BitmapRegistry instead", true)]
-        public Bitmap Symbol
-        {
-            get { throw new NotImplementedException(); }
-            set { throw new NotImplementedException(); }
         }
 
         /// <summary>
@@ -57,7 +50,7 @@ namespace Mapsui.Styles
         ///     Gets or sets the offset in pixels of the symbol.
         /// </summary>
         /// <remarks>
-        ///     The symbol offset is scaled with the <see cref="SymbolScale" /> property and refers to the offset af
+        ///     The symbol offset is scaled with the <see cref="SymbolScale" /> property and refers to the offset of
         ///     <see cref="SymbolScale" />=1.0.
         /// </remarks>
         public Offset SymbolOffset { get; set; }
@@ -70,8 +63,6 @@ namespace Mapsui.Styles
         public UnitType UnitType { get; set; }
 
         public SymbolType SymbolType { get; set; }
-
-        public double Opacity { get; set; }
 
         public override bool Equals(object obj)
         {
@@ -121,7 +112,6 @@ namespace Mapsui.Styles
                 SymbolRotation.GetHashCode() ^
                 UnitType.GetHashCode() ^
                 SymbolType.GetHashCode() ^
-                Opacity.GetHashCode() ^
                 base.GetHashCode();
         }
 

@@ -17,36 +17,27 @@ namespace Mapsui.Rendering.Xaml
     // all .net framework classes related to Xaml, even if they are not.
     public static class GeometryRenderer
     {
-        public static XamlMedia.Matrix CreateTransformMatrix(Point point, IViewport viewport)
+        public static XamlMedia.Matrix CreateTransformMatrix(IReadOnlyViewport viewport, Point point)
         {
-            var matrix = XamlMedia.Matrix.Identity;
-            var mapCenterX = viewport.Width * 0.5;
-            var mapCenterY = viewport.Height * 0.5;
-            
             var pointOffsetFromViewPortCenterX = point.X - viewport.Center.X;
             var pointOffsetFromViewPortCenterY = point.Y - viewport.Center.Y;
+            var mapCenterX = viewport.Width * 0.5;
+            var mapCenterY = viewport.Height * 0.5;
 
+            var matrix = XamlMedia.Matrix.Identity;
             MatrixHelper.Translate(ref matrix, pointOffsetFromViewPortCenterX, pointOffsetFromViewPortCenterY);
-
-            if (viewport.IsRotated)
-            {
-                MatrixHelper.Rotate(ref matrix, -viewport.Rotation);
-            }
-
-
+            if (viewport.IsRotated) { MatrixHelper.Rotate(ref matrix, -viewport.Rotation); }
             MatrixHelper.Translate(ref matrix, mapCenterX, mapCenterY);
             MatrixHelper.ScaleAt(ref matrix, 1 / viewport.Resolution, 1 / viewport.Resolution, mapCenterX, mapCenterY);
-
-            // This will invert the Y axis, but will also put images upside down
-            MatrixHelper.InvertY(ref matrix, mapCenterY);
+            MatrixHelper.InvertY(ref matrix, mapCenterY); // To invert Y axis, but also puts images upside down
             return matrix;
         }
-
-        public static XamlMedia.Matrix CreateTransformMatrix1(IViewport viewport)
-        {
-            return CreateTransformMatrix(new Point(0, 0), viewport);
-        }
         
+        public static XamlMedia.Matrix CreateTransformMatrix(IReadOnlyViewport viewport)
+        {
+            return CreateTransformMatrix(viewport, new Point(0, 0));
+        }
+
         private static XamlShapes.Path CreatePointPath(SymbolStyle style)
         {
             // todo: use this:
@@ -55,7 +46,7 @@ namespace Mapsui.Rendering.Xaml
             // style.SymbolOffset.Convert();
             // style.SymbolRotation;
 
-            var path = new XamlShapes.Path();
+            var path = new XamlShapes.Path { Opacity = style.Opacity };
 
             if (style.BitmapId < 0)
             {
@@ -63,7 +54,7 @@ namespace Mapsui.Rendering.Xaml
             }
             else
             {
-                BitmapImage bitmapImage = BitmapRegistry.Instance.Get(style.BitmapId).ToBitmapImage();
+                BitmapImage bitmapImage = ((Stream)BitmapRegistry.Instance.Get(style.BitmapId)).ToBitmapImage();
 
                 path.Fill = new XamlMedia.ImageBrush { ImageSource = bitmapImage };
 
@@ -85,15 +76,15 @@ namespace Mapsui.Rendering.Xaml
             path.IsHitTestVisible = false;
             return path;
         }
-     
-        private static XamlMedia.Geometry ConvertSymbol(Point point, SymbolStyle style, IViewport viewport)
+
+        private static XamlMedia.Geometry ConvertSymbol(Point point, SymbolStyle style, IReadOnlyViewport viewport)
         {
             Point p = viewport.WorldToScreen(point);
 
             var rect = new XamlMedia.RectangleGeometry();
             if (style.BitmapId >= 0)
             {
-                var bitmapImage = BitmapRegistry.Instance.Get(style.BitmapId).ToBitmapImage();
+                var bitmapImage = ((Stream)BitmapRegistry.Instance.Get(style.BitmapId)).ToBitmapImage();
                 var width = bitmapImage.PixelWidth * style.SymbolScale;
                 var height = bitmapImage.PixelHeight * style.SymbolScale;
                 rect.Rect = new Rect(p.X - width * 0.5, p.Y - height * 0.5, width, height);
@@ -102,7 +93,7 @@ namespace Mapsui.Rendering.Xaml
             return rect;
         }
 
-        public static XamlShapes.Shape RenderMultiPoint(MultiPoint multiPoint, IStyle style, IViewport viewport, 
+        public static XamlShapes.Shape RenderMultiPoint(MultiPoint multiPoint, IStyle style, IReadOnlyViewport viewport,
             SymbolCache symbolCache)
         {
             // This method needs a test
@@ -111,26 +102,26 @@ namespace Mapsui.Rendering.Xaml
             var symbolStyle = style as SymbolStyle;
             var path = CreatePointPath(symbolStyle);
             path.Data = ConvertMultiPoint(multiPoint, symbolStyle, viewport);
-            path.RenderTransform = new XamlMedia.MatrixTransform { Matrix = CreateTransformMatrix1(viewport) };
+            path.RenderTransform = new XamlMedia.MatrixTransform { Matrix = CreateTransformMatrix(viewport) };
             return path;
         }
 
-        private static XamlMedia.GeometryGroup ConvertMultiPoint(MultiPoint multiPoint, SymbolStyle style, IViewport viewport)
+        private static XamlMedia.GeometryGroup ConvertMultiPoint(MultiPoint multiPoint, SymbolStyle style, IReadOnlyViewport viewport)
         {
             var group = new XamlMedia.GeometryGroup();
             foreach (var geometry in multiPoint)
             {
-                var point = (Point) geometry;
+                var point = (Point)geometry;
                 group.Children.Add(ConvertSymbol(point, style, viewport));
             }
             return group;
         }
 
-        public static XamlShapes.Path RenderRaster(IRaster raster, IStyle style, IViewport viewport)
+        public static XamlShapes.Path RenderRaster(IRaster raster, IStyle style, IReadOnlyViewport viewport)
         {
             var path = CreateRasterPath(style, raster.Data);
             path.Data = new XamlMedia.RectangleGeometry();
-            PositionRaster(path, raster.GetBoundingBox(), viewport);
+            PositionRaster(path, raster.BoundingBox, viewport);
             return path;
         }
 
@@ -151,7 +142,7 @@ namespace Mapsui.Rendering.Xaml
                 Fill = new XamlMedia.ImageBrush { ImageSource = bitmapImage },
                 IsHitTestVisible = false,
                 SnapsToDevicePixels = true
-                 
+
             };
 
             if (Utilities.DeveloperTools.DeveloperMode)
@@ -159,8 +150,8 @@ namespace Mapsui.Rendering.Xaml
                 var color = (style as VectorStyle)?.Line.Color.ToXaml();
                 if (color.HasValue && color.Value.A > 0)
                 {
-                    path.Stroke = new XamlMedia.SolidColorBrush {Color = color.Value};
-                    path.StrokeThickness = ((VectorStyle) style).Line.Width;
+                    path.Stroke = new XamlMedia.SolidColorBrush { Color = color.Value };
+                    path.StrokeThickness = ((VectorStyle)style).Line.Width;
                 }
             }
 
@@ -179,8 +170,8 @@ namespace Mapsui.Rendering.Xaml
                 Math.Round(dest.Bottom) - Math.Round(dest.Top));
             return dest;
         }
-        
-        public static void PositionRaster(UIElement renderedGeometry, BoundingBox boundingBox, IViewport viewport)
+
+        public static void PositionRaster(UIElement renderedGeometry, BoundingBox boundingBox, IReadOnlyViewport viewport)
         {
             UpdateRenderTransform(renderedGeometry, viewport);
 
@@ -192,7 +183,7 @@ namespace Mapsui.Rendering.Xaml
                 RoundToPixel(new Rect(topLeft.X, topLeft.Y, rectWidthPixels, rectHeightPixels));
         }
 
-        private static void UpdateRenderTransform(UIElement renderedGeometry, IViewport viewport)
+        private static void UpdateRenderTransform(UIElement renderedGeometry, IReadOnlyViewport viewport)
         {
             var matrix = XamlMedia.Matrix.Identity;
 
@@ -205,10 +196,10 @@ namespace Mapsui.Rendering.Xaml
             renderedGeometry.RenderTransform = new XamlMedia.MatrixTransform { Matrix = matrix };
         }
 
-        public static void PositionGeometry(XamlShapes.Shape renderedGeometry, IViewport viewport)
+        public static void PositionGeometry(XamlShapes.Shape renderedGeometry, IReadOnlyViewport viewport)
         {
             CounterScaleLineWidth(renderedGeometry, viewport.Resolution);
-            var matrixTransform = new XamlMedia.MatrixTransform {Matrix = CreateTransformMatrix1(viewport)};
+            var matrixTransform = new XamlMedia.MatrixTransform { Matrix = CreateTransformMatrix(viewport) };
             renderedGeometry.RenderTransform = matrixTransform;
 
             if (renderedGeometry.Fill != null)
@@ -222,12 +213,8 @@ namespace Mapsui.Rendering.Xaml
             // is scaled along with the rest. We want the outline to have a fixed
             // width independent of the scale. So here we counter scale using
             // the orginal width stored in the Tag.
-            if (renderedGeometry is XamlShapes.Path)
-            {
-                var path = renderedGeometry as XamlShapes.Path;
-                if (path.Tag is double?)
-                    path.StrokeThickness = (path.Tag as double?).Value * resolution;
-            }
+            var path = renderedGeometry as XamlShapes.Path;
+            if (path?.Tag is double) path.StrokeThickness = (path.Tag as double?).Value * resolution;
         }
     }
 }

@@ -3,6 +3,8 @@
 
 *.dll
 
+*.bak
+
 *.zip
 
 *.stamp
@@ -37,3 +39,14 @@ Release/
 /Tests/Mapsui.Rendering.Skia.Tests/Resources/Images/Generated
 *.user
 *.cache
+/Mapsui.Samples.Wpf.psess
+/_NCrunch_Mapsui/StoredText
+
+project.lock.json
+*.nuget.props
+/Tools/VersionUpdater.pdb
+/Tools/VersionUpdater.exe.config
+/Tools/VersionUpdater.exe
+/Mapsui.UI.Forms/Images/Pin.svg.bak
+/Samples/Mapsui.Samples.Uwp/AppPackages/Mapsui.Samples.Uwp_1.0.0.0_x86_Test
+/Artifacts

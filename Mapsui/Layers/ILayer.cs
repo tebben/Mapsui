@@ -22,6 +22,7 @@ using Mapsui.Geometries;
 using Mapsui.Projection;
 using Mapsui.Providers;
 using Mapsui.Styles;
+using Mapsui.Widgets;
 
 namespace Mapsui.Layers
 {
@@ -30,6 +31,9 @@ namespace Mapsui.Layers
     /// </summary>
     public interface ILayer : IAsyncDataFetcher, INotifyPropertyChanged 
     {
+        /// <summary>
+        /// Numerical Id of layer
+        /// </summary>
         int Id { get; }
 
         /// <summary>
@@ -74,6 +78,9 @@ namespace Mapsui.Layers
         /// </summary>
         ITransformation Transformation { get; set; }
 
+        /// <summary>
+        /// Gets or sets rendering style of layer
+        /// </summary>
         IStyle Style { get; set; }
 
         /// <summary>
@@ -82,10 +89,22 @@ namespace Mapsui.Layers
         /// </summary>
         bool Exclusive { get; set; }
 
+        /// <summary>
+        /// Opacity of layer
+        /// </summary>
         double Opacity { get; set; }
 
+        /// <summary>
+        /// Flag, if layer is busy
+        /// </summary>
         bool Busy { get; set; }
 
+        /// <summary>
+        /// Get all features in a given BoundingBox for a given resolution
+        /// </summary>
+        /// <param name="extent">Bounding box</param>
+        /// <param name="resolution">Resolution of viewport</param>
+        /// <returns></returns>
         IEnumerable<IFeature> GetFeaturesInView(BoundingBox extent, double resolution);
 
         /// <summary>
@@ -95,6 +114,19 @@ namespace Mapsui.Layers
         /// <returns>True if is does, false if it does not, null if it is unknown</returns>
         bool? IsCrsSupported(string crs);
 
-        Attribution Attribution { get; }
+        /// <summary>
+        /// Attribution for layer
+        /// </summary>
+        Hyperlink Attribution { get; }
+
+        /// <summary>
+        /// List of native resolutions
+        /// </summary>
+        IReadOnlyList<double> Resolutions { get; }
+
+        /// <summary>
+        /// Indicates if the layer should be taken into account for the GetMapInfo request
+        /// </summary>
+        bool IsMapInfoLayer { get; set; }
     }
 }

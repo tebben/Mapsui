@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using Mapsui.Geometries;
 using Mapsui.Layers;
 using Mapsui.Providers;
+using Mapsui.Samples.Common.Helpers;
 using Mapsui.Styles;
 using Mapsui.Utilities;
 
@@ -23,7 +25,8 @@ namespace Mapsui.Samples.Common.Maps
 
     public class AnimatedPointsWithAutoUpdateLayer : AnimatedPointLayer
     {
-        private Timer _timer;
+        // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+        private readonly Timer _timer;
 
         public AnimatedPointsWithAutoUpdateLayer()
             : base(new DynamicMemoryProvider())
@@ -39,7 +42,7 @@ namespace Mapsui.Samples.Common.Maps
             public override IEnumerable<IFeature> GetFeaturesInView(BoundingBox box, double resolution)
             {
                 var features = new List<IFeature>();
-                var geometries = PointsSample.GenerateRandomPoints(box, 10).ToList();
+                var geometries = RandomPointHelper.GenerateRandomPoints(box, 10, _random.Next()).ToList();
                 var count = 0;
                 var random = _random.Next(geometries.Count);
 

@@ -33,23 +33,25 @@ namespace Mapsui.Tests.Layers
             };
 
             // act
-            layer.ViewChanged(true, box, resolution);
+            layer.RefreshData(box, resolution, true);
             waitHandle.WaitOne();
             Assert.AreEqual(layer.GetFeaturesInView(box, resolution).Count(), 1);
         }
 
         private static MemoryLayer CreatePointLayer()
         {
-            var provider = new MemoryProvider();
             var random = new Random();
+            var features = new Features();
             for (var i = 0; i < 100; i++)
             {
                 var feature = new Feature
                 {
                     Geometry = new Geometries.Point(random.Next(100000, 5000000), random.Next(100000, 5000000))
                 };
-                provider.Features.Add(feature);
+                features.Add(feature);
             }
+            var provider = new MemoryProvider(features);
+
             return new MemoryLayer { DataSource = provider };
         }
     }

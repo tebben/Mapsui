@@ -1,3 +1,5 @@
+// TODO: There are parts talking about SharpMap
+
 // Copyright 2008 - Paul den Dulk (Geodan)
 // 
 // This file is part of SharpMap.
@@ -27,84 +29,77 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using Mapsui.Logging;
+using Mapsui.Widgets;
 
 namespace Mapsui.Layers
 {
-    public interface ITileLayer 
+    /// <summary>
+    /// Layer, which displays a map consisting of individual tiles
+    /// </summary>
+    public class TileLayer : BaseLayer
     {
-        ITileSchema Schema { get; }
-        MemoryCache<Feature> MemoryCache { get; }
-    }
-
-    public class TileLayer : BaseLayer, ITileLayer
-    {
-        private TileFetcher _tileFetcher;
         private ITileSource _tileSource;
-        private readonly int _maxRetries;
-        private readonly int _maxThreads;
-        private readonly IFetchStrategy _fetchStrategy;
-        private readonly IRenderGetStrategy _renderFetchStrategy;
+        private readonly IRenderGetStrategy _renderStrategy;
         private readonly int _minExtraTiles;
         private readonly int _maxExtraTiles;
         private int _numberTilesNeeded;
+        private readonly TileFetchDispatcher _tileFetchDispatcher;
+        private readonly FetchMachine _fetchMachine;
 
-        readonly MemoryCache<Feature> _memoryCache;
-
+        /// <summary>
+        /// Create tile layer from tile source initializer function
+        /// </summary>
+        /// <param name="tileSourceInitializer">Initializer to create a tile layer source</param>
         public TileLayer(Func<ITileSource> tileSourceInitializer) : this()
         {
-            Task.Factory.StartNew(() => TileSource = tileSourceInitializer());
+            Task.Run(() =>
+            {
+                try
+                {
+                    SetTileSource(tileSourceInitializer());
+                }
+                catch (Exception e)
+                {
+                    Logger.Log(LogLevel.Debug, $"Initialization of layer {Name} failed: {e.Message}");
+                }
+            });
         }
 
-        public TileLayer(ITileSource source = null, int minTiles = 200, int maxTiles = 300, int maxRetries = TileFetcher.DefaultMaxAttempts,
-            int maxThreads = TileFetcher.DefaultMaxThreads, IFetchStrategy fetchStrategy = null,
+        /// <summary>
+        /// Create tile layer for given tile source
+        /// </summary>
+        /// <param name="source">Tile source to use for this layer</param>
+        /// <param name="minTiles">Minimum number of tiles to cache</param>
+        /// <param name="maxTiles">Maximum number of tiles to cache</param>
+        /// <param name="maxRetries">Unused</param>
+        /// <param name="fetchStrategy">Strategy to get list of tiles for given extent</param>
+        /// <param name="renderFetchStrategy"></param>
+        /// <param name="minExtraTiles">Number of minimum extra tiles for memory cache</param>
+        /// <param name="maxExtraTiles">Number of maximum extra tiles for memory cache</param>
+        // ReSharper disable once UnusedParameter.Local // Is public and won't break this now
+        public TileLayer(ITileSource source = null, int minTiles = 200, int maxTiles = 300, int maxRetries = 2, IFetchStrategy fetchStrategy = null,
             IRenderGetStrategy renderFetchStrategy = null, int minExtraTiles = -1, int maxExtraTiles = -1)
         {
-            _memoryCache = new MemoryCache<Feature>(minTiles, maxTiles);
+            MemoryCache = new MemoryCache<Feature>(minTiles, maxTiles);
             Style = new VectorStyle { Outline = { Color = Color.FromArgb(0, 0, 0, 0) } }; // initialize with transparent outline
-            _maxRetries = maxRetries;
-            _maxThreads = maxThreads;
-            _fetchStrategy = fetchStrategy ?? new FetchStrategy();
-            _renderFetchStrategy = renderFetchStrategy ?? new RenderGetStrategy();
+            var fetchStrategy1 = fetchStrategy ?? new FetchStrategy(3);
+            _renderStrategy = renderFetchStrategy ?? new RenderGetStrategy();
             _minExtraTiles = minExtraTiles;
             _maxExtraTiles = maxExtraTiles;
+            _tileFetchDispatcher = new TileFetchDispatcher(MemoryCache, fetchStrategy1);
+            _tileFetchDispatcher.DataChanged += TileFetchDispatcherOnDataChanged;
+            _tileFetchDispatcher.PropertyChanged += TileFetchDispatcherOnPropertyChanged;
+            _fetchMachine = new FetchMachine(_tileFetchDispatcher);
             SetTileSource(source);
         }
 
-        protected void SetTileSource(ITileSource source)
-        {
-            if (_tileSource != null)
-            {
-                // Is causing thread leak _tileFetcher.AbortFetch();
-                _tileFetcher.DataChanged -= TileFetcherDataChanged;
-                _tileFetcher.PropertyChanged -= TileFetcherOnPropertyChanged;
-                _tileFetcher = null;
-                _memoryCache.Clear();
-            }
-
-            _tileSource = source;
-
-            if (_tileSource != null)
-            {
-                Attribution.Text = _tileSource.Attribution?.Text;
-                Attribution.Url = _tileSource.Attribution?.Url;
-                _tileFetcher = new TileFetcher(source, _memoryCache, _maxRetries, _maxThreads, _fetchStrategy);
-                _tileFetcher.DataChanged += TileFetcherDataChanged;
-                _tileFetcher.PropertyChanged += TileFetcherOnPropertyChanged;
-                OnPropertyChanged(nameof(Envelope));
-            }
-        }
-
-        private void TileFetcherOnPropertyChanged(object sender, PropertyChangedEventArgs propertyChangedEventArgs)
-        {
-            if (propertyChangedEventArgs.PropertyName == nameof(Busy))
-            {
-                if (_tileFetcher != null) Busy = _tileFetcher.Busy;
-            }
-        }
-
+        /// <summary>
+        /// Tile source for this layer
+        /// </summary>
         public ITileSource TileSource
         {
-            get { return _tileSource; }
+            get => _tileSource;
             set
             {
                 SetTileSource(value);
@@ -112,69 +107,99 @@ namespace Mapsui.Layers
             }
         }
 
-        public override BoundingBox Envelope => Schema?.Extent.ToBoundingBox();
+        /// <summary>
+        /// Memory cache for this layer
+        /// </summary>
+        public MemoryCache<Feature> MemoryCache { get; }
 
-        public override void ViewChanged(bool majorChange, BoundingBox extent, double resolution)
+        /// <inheritdoc />
+        public override IReadOnlyList<double> Resolutions => _tileSource?.Schema?.Resolutions.Select(r => r.Value.UnitsPerPixel).ToList();
+
+        /// <inheritdoc />
+        public override BoundingBox Envelope => _tileSource?.Schema?.Extent.ToBoundingBox();
+
+        /// <inheritdoc />
+        public override IEnumerable<IFeature> GetFeaturesInView(BoundingBox box, double resolution)
         {
-            if (Enabled && extent.GetArea() > 0 && _tileFetcher != null && MaxVisible > resolution && MinVisible < resolution)
+            if (_tileSource?.Schema == null) return Enumerable.Empty<IFeature>();
+            UpdateMemoryCacheMinAndMax();
+            return _renderStrategy.GetFeatures(box, resolution, _tileSource?.Schema, MemoryCache);
+        }
+
+        /// <summary>
+        /// Aborts the tile fetches that are in progress. If this method is not called
+        /// the threads will terminate naturally. It will just take a little longer.
+        /// </summary>
+        public override void AbortFetch()
+        {
+            _fetchMachine?.Stop();
+        }
+
+        /// <inheritdoc />
+        public override void ClearCache()
+        {
+            MemoryCache.Clear();
+        }
+
+        /// <inheritdoc />
+        public override void RefreshData(BoundingBox extent, double resolution, bool majorChange)
+        {
+            if (Enabled && extent.GetArea() > 0 && _tileFetchDispatcher != null && MaxVisible > resolution && MinVisible < resolution)
             {
-                _tileFetcher.ViewChanged(extent, resolution);
+                _tileFetchDispatcher.SetViewport(extent, resolution);
+                _fetchMachine.Start();
+            }
+        }
+
+        /// <inheritdoc />
+        public override bool? IsCrsSupported(string crs)
+        {
+            return (string.Equals(ToSimpleEpsgCode(), crs, StringComparison.CurrentCultureIgnoreCase));
+        }
+
+        private void SetTileSource(ITileSource tileSource)
+		{
+            _fetchMachine.Stop();
+			MemoryCache.Clear();
+		    _tileFetchDispatcher.TileSource = tileSource;
+            _tileSource = tileSource;
+		    OnPropertyChanged(nameof(Envelope));
+
+            if (_tileSource != null)
+            {
+                if (Attribution == null) Attribution = new Hyperlink();
+                Attribution.Text = _tileSource.Attribution?.Text;
+                Attribution.Url = _tileSource.Attribution?.Url;
+            }
+        }
+
+        private void TileFetchDispatcherOnPropertyChanged(object sender, PropertyChangedEventArgs propertyChangedEventArgs)
+        {
+            if (propertyChangedEventArgs.PropertyName == nameof(Busy))
+            {
+                if (_tileFetchDispatcher != null) Busy = _tileFetchDispatcher.Busy;
             }
         }
 
         private void UpdateMemoryCacheMinAndMax()
         {
             if (_minExtraTiles < 0 || _maxExtraTiles < 0 
-                || _numberTilesNeeded == _tileFetcher.NumberTilesNeeded) return;
-            _numberTilesNeeded = _tileFetcher.NumberTilesNeeded;
-            _memoryCache.MinTiles = _numberTilesNeeded + _minExtraTiles;
-            _memoryCache.MaxTiles = _numberTilesNeeded + _maxExtraTiles;
+                || _numberTilesNeeded == _tileFetchDispatcher.NumberTilesNeeded) return;
+            _numberTilesNeeded = _tileFetchDispatcher.NumberTilesNeeded;
+            MemoryCache.MinTiles = _numberTilesNeeded + _minExtraTiles;
+            MemoryCache.MaxTiles = _numberTilesNeeded + _maxExtraTiles;
         }
 
-        public override void ClearCache()
-        {
-            _memoryCache.Clear();
-        }
-
-        // TODO: 
-        // investigate whether we can do without this public Schema. 
-        // Its primary use is in the Renderer which recursively searches for
-        // available tiles. Perhaps this recursive search can be done within
-        // this class. I would be nice though if there was some flexibility into
-        // the specific search strategy. Perhaps it is possible to pass a search 
-        // to some GetTiles method.
-        // Update. Schema is not used in the Renderer anymore and TileSource is now a public property
-        public ITileSchema Schema => _tileSource?.Schema;
-
-        public MemoryCache<Feature> MemoryCache => _memoryCache;
-
-        private void TileFetcherDataChanged(object sender, DataChangedEventArgs e)
+        private void TileFetchDispatcherOnDataChanged(object sender, DataChangedEventArgs e)
         {
             OnDataChanged(e);
         }
 
-        public override IEnumerable<IFeature> GetFeaturesInView(BoundingBox box, double resolution)
+        private string ToSimpleEpsgCode()
         {
-            if (Schema == null) return Enumerable.Empty<IFeature>();
-            UpdateMemoryCacheMinAndMax();
-            return _renderFetchStrategy.GetFeatures(box, resolution, Schema, _memoryCache);
-        }
-
-        public override bool? IsCrsSupported(string crs)
-        {
-            return (string.Equals(ToSimpleEpsgCode(), crs, StringComparison.CurrentCultureIgnoreCase));
-        }
-
-        string ToSimpleEpsgCode()
-        {
-            var startEpsgCode = TileSource.Schema.Srs.IndexOf("EPSG:", StringComparison.Ordinal);
-            if (startEpsgCode < 0) return TileSource.Schema.Srs;
-            return TileSource.Schema.Srs.Substring(startEpsgCode).Replace("::", ":").Trim();
-        }
-
-        public override void AbortFetch()
-        {
-            // to nothing for now
+            var startEpsgCode = _tileSource.Schema.Srs.IndexOf("EPSG:", StringComparison.Ordinal);
+            if (startEpsgCode < 0) return _tileSource.Schema.Srs;
+            return _tileSource.Schema.Srs.Substring(startEpsgCode).Replace("::", ":").Trim();
         }
     }
 }

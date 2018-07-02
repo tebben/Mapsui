@@ -16,6 +16,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -25,7 +26,7 @@ namespace Mapsui.Geometries
     /// <summary>
     ///     A MultiPolygon is a MultiSurface whose elements are Polygons.
     /// </summary>
-    public class MultiPolygon : GeometryCollection
+    public class MultiPolygon : Geometry, IGeometryCollection, IEnumerable<Geometry>
     {
         /// <summary>
         ///     Instantiates a MultiPolygon
@@ -45,7 +46,7 @@ namespace Mapsui.Geometries
         /// </summary>
         /// <param name="index">Geometry index</param>
         /// <returns>Geometry at index</returns>
-        public new Polygon this[int index] => Polygons[index];
+        public Polygon this[int index] => Polygons[index];
 
         /// <summary>
         ///     Returns summed area of the Polygons in the MultiPolygon collection
@@ -58,10 +59,7 @@ namespace Mapsui.Geometries
         /// <summary>
         ///     Returns the number of geometries in the collection.
         /// </summary>
-        public override int NumGeometries
-        {
-            get { return Polygons.Count; }
-        }
+        public int NumGeometries => Polygons.Count;
 
         /// <summary>
         ///     If true, then this Geometry represents the empty point set, Ø, for the coordinate space.
@@ -69,8 +67,14 @@ namespace Mapsui.Geometries
         /// <returns>Returns 'true' if this Geometry is the empty geometry</returns>
         public override bool IsEmpty()
         {
-            if ((Polygons == null) || (Polygons.Count == 0)) return true;
+            if (Polygons == null || Polygons.Count == 0) return true;
+
             return Polygons.All(polygon => polygon.IsEmpty());
+        }
+
+        public override bool Equals(Geometry geom)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -82,11 +86,20 @@ namespace Mapsui.Geometries
         public override double Distance(Point point)
         {
             var minDistance = double.MaxValue;
-            foreach (var geometry in Collection)
+            foreach (var geometry in Polygons)
             {
                 minDistance = Math.Min(minDistance, geometry.Distance(point));
             }
             return minDistance;
+        }
+
+        public override bool Contains(Point point)
+        {
+            foreach (var geometry in Polygons)
+            {
+                if (geometry.Contains(point)) return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -94,25 +107,34 @@ namespace Mapsui.Geometries
         /// </summary>
         /// <param name="n">Geometry index</param>
         /// <returns>Geometry at index N</returns>
-        public override Geometry Geometry(int n)
+        public Geometry Geometry(int n)
         {
             return Polygons[n];
         }
 
+        [Obsolete("Use the BoundingBox field instead")]
+        public new BoundingBox GetBoundingBox()
+        {
+            return BoundingBox;
+        }
         /// <summary>
         ///     Returns the bounding box of the object
         /// </summary>
         /// <returns>bounding box</returns>
-        public override BoundingBox GetBoundingBox()
+        public override BoundingBox BoundingBox
         {
-            if ((Polygons == null) || (Polygons.Count == 0))
-                return null;
-            var bbox = Polygons[0].GetBoundingBox();
-            for (var i = 1; i < Polygons.Count; i++)
+            get
             {
-                bbox = bbox.Join(Polygons[i].GetBoundingBox());
+                if (Polygons == null || Polygons.Count == 0) return null;
+
+                var bbox = Polygons[0].BoundingBox;
+                for (var i = 1; i < Polygons.Count; i++)
+                {
+                    bbox = bbox.Join(Polygons[i].BoundingBox);
+                }
+
+                return bbox;
             }
-            return bbox;
         }
 
         /// <summary>
@@ -133,12 +155,17 @@ namespace Mapsui.Geometries
         ///     Gets an enumerator for enumerating the geometries in the GeometryCollection
         /// </summary>
         /// <returns></returns>
-        public override IEnumerator<Geometry> GetEnumerator()
+        public IEnumerator<Geometry> GetEnumerator()
         {
             foreach (var polygon in Polygons)
             {
                 yield return polygon;
             }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

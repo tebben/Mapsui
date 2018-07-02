@@ -2,23 +2,24 @@
 using Mapsui.Layers;
 using Mapsui.Providers;
 using Mapsui.Styles;
+using System.Reflection;
 
 namespace Mapsui.Tests.Common.Maps
 {
     public static class PolygonSample
     {
+        static int _bitmapId;
+
         public static Map CreateMap()
         {
+            var assembly = typeof(PolygonSample).GetTypeInfo().Assembly;
+            var image = assembly.GetManifestResourceStream("Mapsui.Tests.Common.Resources.Images.avion_silhouette.png");
+            _bitmapId = BitmapRegistry.Instance.Register(image);
+
             var map = new Map
             {
                 BackColor = Color.Transparent,
-                Viewport =
-                {
-                    Center = new Point(0, 0),
-                    Width = 600,
-                    Height = 400,
-                    Resolution = 63000
-                }
+                Home = n => n.NavigateTo(new Point(0, 0), 63000)
             };
 
             var layer = new MemoryLayer
@@ -32,7 +33,7 @@ namespace Mapsui.Tests.Common.Maps
 
         public static MemoryProvider CreatePolygonProvider()
         {
-            var provider = new MemoryProvider(new Features());
+            var features = new Features();
 
             var feature = new Feature
             {
@@ -43,19 +44,137 @@ namespace Mapsui.Tests.Common.Maps
             feature.Styles.Add(new VectorStyle
             {
                 Enabled = true,
-                Fill = CreateBrush(new Color(255,0,0, 120) ,FillStyle.DiagonalCross),
+                Fill = CreateBrush(new Color(255,0,0, 120) , FillStyle.BitmapRotated, _bitmapId),
                 Outline = CreatePen(new Color(255, 255, 0), 2, PenStyle.DashDot),
                 Line = null
             });
 
-            provider.Features.Add(feature);
+            features.Add(feature);
+
+            feature = new Feature {
+                Geometry = Geometry.GeomFromText("POLYGON ((2000000 10000000, 2000000 8000000, 10000000 8000000, 10000000 10000000, 2000000 10000000))")
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Enabled = true,
+                Fill = CreateBrush(Color.Blue, FillStyle.BackwardDiagonal),
+                Outline = CreatePen(Color.Blue, 2, PenStyle.Solid),
+                Line = null
+            });
+            features.Add(feature);
+
+            feature = new Feature
+            {
+                Geometry = Geometry.GeomFromText("POLYGON ((-8000000 10000000, 0000000 10000000, 0000000 8000000, -8000000 8000000, -8000000 10000000))")
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Enabled = true,
+                Fill = CreateBrush(Color.Red, FillStyle.Cross),
+                Outline = CreatePen(Color.Red, 2, PenStyle.Solid),
+                Line = null
+            });
+            features.Add(feature);
+
+            feature = new Feature
+            {
+                Geometry = Geometry.GeomFromText("POLYGON ((-18000000 10000000, -10000000 10000000, -10000000 8000000, -18000000 8000000, -18000000 10000000))")
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Enabled = true,
+                Fill = CreateBrush(Color.Gray, FillStyle.DiagonalCross),
+                Outline = CreatePen(Color.Gray, 2, PenStyle.Solid),
+                Line = null
+            });
+            features.Add(feature);
+
+            feature = new Feature
+            {
+                Geometry = Geometry.GeomFromText("POLYGON ((-18000000 6000000, -10000000 6000000, -10000000 4000000, -18000000 4000000, -18000000 6000000))")
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Enabled = true,
+                Fill = CreateBrush(Color.Gray, FillStyle.Dotted),
+                Outline = CreatePen(Color.Gray, 2, PenStyle.Solid),
+                Line = null
+            });
+            features.Add(feature);
+
+            feature = new Feature
+            {
+                Geometry = Geometry.GeomFromText("POLYGON ((-18000000 2000000, -10000000 2000000, -10000000 000000, -18000000 000000, -18000000 2000000))")
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Enabled = true,
+                Fill = CreateBrush(Color.Green, FillStyle.ForwardDiagonal),
+                Outline = CreatePen(Color.Green, 2, PenStyle.Solid),
+                Line = null
+            });
+            features.Add(feature);
+
+            feature = new Feature
+            {
+                Geometry = Geometry.GeomFromText("POLYGON ((-18000000 -2000000, -10000000 -2000000, -10000000 -4000000, -18000000 -4000000, -18000000 -2000000))")
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Enabled = true,
+                Fill = CreateBrush(Color.Cyan, FillStyle.Hollow),
+                Outline = CreatePen(Color.Cyan, 2, PenStyle.Solid),
+                Line = null
+            });
+            features.Add(feature);
+
+            feature = new Feature
+            {
+                Geometry = Geometry.GeomFromText("POLYGON ((-18000000 -6000000, -10000000 -6000000, -10000000 -8000000, -18000000 -8000000, -18000000 -6000000))")
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Enabled = true,
+                Fill = CreateBrush(Color.Indigo, FillStyle.Horizontal),
+                Outline = CreatePen(Color.Indigo, 2, PenStyle.Solid),
+                Line = null
+            });
+            features.Add(feature);
+
+            feature = new Feature
+            {
+                Geometry = Geometry.GeomFromText("POLYGON ((-18000000 -10000000, -10000000 -10000000, -10000000 -12000000, -18000000 -12000000, -18000000 -10000000))")
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Enabled = true,
+                Fill = CreateBrush(Color.Orange, FillStyle.Solid),
+                Outline = CreatePen(Color.Orange, 2, PenStyle.Solid),
+                Line = null
+            });
+            features.Add(feature);
+
+            feature = new Feature
+            {
+                Geometry = Geometry.GeomFromText("POLYGON ((-8000000 -10000000, 0000000 -10000000, 0000000 -12000000, -8000000 -12000000, -8000000 -10000000))")
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Enabled = true,
+                Fill = CreateBrush(Color.Violet, FillStyle.Vertical),
+                Outline = CreatePen(Color.Violet, 2, PenStyle.Solid),
+                Line = null
+            });
+            features.Add(feature);
+
+            var provider = new MemoryProvider(features);
 
             return provider;
         }
 
         private static Brush CreateBrush(Color color, FillStyle fillStyle, int ?imageId = null)
         {
-            if (imageId.HasValue)
+            if (imageId.HasValue && !(fillStyle == FillStyle.Bitmap || fillStyle == FillStyle.BitmapRotated))
                 fillStyle = FillStyle.Bitmap;
 
             return new Brush { FillStyle = fillStyle, BitmapId = imageId ?? -1, Color = color };

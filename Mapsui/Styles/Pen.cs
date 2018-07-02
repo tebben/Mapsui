@@ -1,9 +1,8 @@
+// ReSharper disable NonReadonlyMemberInGetHashCode // todo: Fix this real issue
 namespace Mapsui.Styles
 {
     public class Pen
     {
-        private PenStyle _penStyle = PenStyle.Solid;
-
         public Pen() {}
 
         public Pen(Color color, double width = 1)
@@ -12,14 +11,41 @@ namespace Mapsui.Styles
             Width = width;
         }
 
+        /// <summary>
+        /// Width of line
+        /// </summary>
         public double Width { get; set; } = 1;
+
+        /// <summary>
+        /// Color of line
+        /// </summary>
         public Color Color { get; set; }
 
-        public PenStyle PenStyle
-        {
-            get { return _penStyle; }
-            set { _penStyle = value; }
-        }
+        /// <summary>
+        /// Style of the line (solid/dashed), which is drawn
+        /// </summary>
+        public PenStyle PenStyle { get; set; } = PenStyle.Solid;
+
+        /// <summary>
+        /// Array for drawing user defined dashes. Should be even and values are 
+        /// multiplied by line width before drawing.
+        /// </summary>
+        public float[] DashArray { get; set; } = null;
+
+        /// <summary>
+        /// Defines the end of a line
+        /// </summary>
+        public PenStrokeCap PenStrokeCap { get; set; } = PenStrokeCap.Butt;
+
+        /// <summary>
+        /// Defines how line parts are join together
+        /// </summary>
+        public StrokeJoin StrokeJoin { get; set; } = StrokeJoin.Miter;
+
+        /// <summary>
+        /// Defines up to which width of line StrokeJoin is used
+        /// </summary>
+        public float StrokeMiterLimit { get; set; } = 10f; // Default on Wpf, on Skia, it is 4f
 
         public override bool Equals(object obj)
         {
@@ -33,20 +59,22 @@ namespace Mapsui.Styles
         public bool Equals(Pen pen)
         {
             // ReSharper disable once CompareOfFloatsByEqualityOperator
-            if (Width != pen.Width)
-            {
-                return false;
-            }
+            if (Width != pen.Width) return false;
+            
+            //if one or the other is null then they are not equal, but not when they are both null
+            if ((Color == null) ^ (pen.Color == null)) return false;
 
-            if ((Color == null) ^ (pen.Color == null)) //if one or the other is null then they are not equal, but not when they are both null
-            {
-                return false;
-            }
+            if (Color != null && !Color.Equals(pen.Color)) return false;
 
-            if (Color != null && !Color.Equals(pen.Color))
-            {
-                return false;
-            }
+            if (PenStyle != pen.PenStyle) return false;
+
+            if (DashArray != pen.DashArray) return false;
+
+            if (PenStrokeCap != pen.PenStrokeCap) return false;
+
+            if (StrokeJoin != pen.StrokeJoin) return false;
+
+            if (StrokeMiterLimit != pen.StrokeMiterLimit) return false;
 
             return true;
         }

@@ -5,16 +5,26 @@ using XamlBrush = System.Windows.Media.Brush;
 using XamlColor = System.Windows.Media.Color;
 using System.Windows;
 using System.Collections.Generic;
+using System.Windows.Media.Imaging;
 using Mapsui.Styles;
 
 namespace Mapsui.Rendering.Xaml
 {
     public static class StyleConverter
     {
-        public static DoubleCollection MapsuiPentoXaml(PenStyle penStyle)
+        public static DoubleCollection MapsuiPentoXaml(PenStyle penStyle, float[] dashArray = null)
         {
             switch (penStyle)
             {
+                case PenStyle.UserDefined:
+                    if (dashArray == null || dashArray.Length == 0 || dashArray.Length % 2 != 0)
+                        return new DoubleCollection { 1, 0 };
+                    var dash = new DoubleCollection(dashArray.Length);
+                    for (var i = 0; i < dashArray.Length; i++)
+                    {
+                        dash.Add(dashArray[i]);
+                    }
+                    return dash;
                 case PenStyle.Dash:
                     return new DoubleCollection {2, 2};
                 case PenStyle.DashDot:
@@ -40,7 +50,37 @@ namespace Mapsui.Rendering.Xaml
             return null;
         }
 
-        public static XamlBrush MapsuiBrushToXaml(Styles.Brush brush, SymbolCache symbolCache = null)
+        public static PenLineCap MapsuiStrokeCaptoPenLineCap(PenStrokeCap penStrokeCap)
+        {
+            switch(penStrokeCap)
+            {
+                case PenStrokeCap.Butt:
+                    return PenLineCap.Flat;
+                case PenStrokeCap.Round:
+                    return PenLineCap.Round;
+                case PenStrokeCap.Square:
+                    return PenLineCap.Square;
+                default:
+                    return PenLineCap.Flat;
+            }
+        }
+
+        public static PenLineJoin MapsuiStrokeJointoPenLineJoin(StrokeJoin penStrokeJoin)
+        {
+            switch (penStrokeJoin)
+            {
+                case StrokeJoin.Miter:
+                    return PenLineJoin.Miter;
+                case StrokeJoin.Round:
+                    return PenLineJoin.Round;
+                case StrokeJoin.Bevel:
+                    return PenLineJoin.Bevel;
+                default:
+                    return PenLineJoin.Miter;
+            }
+        }
+
+        public static XamlBrush MapsuiBrushToXaml(Styles.Brush brush, SymbolCache symbolCache = null, double rotate = 0)
         {
             if (brush == null) return null;
             switch (brush.FillStyle)
@@ -50,7 +90,17 @@ namespace Mapsui.Rendering.Xaml
                 case FillStyle.BackwardDiagonal:
                     return CreateHatchBrush(brush, 10, 10, new List<Geometry> { Geometry.Parse("M 0 10 l 10 -10"), Geometry.Parse("M -0.5 0.5 l 10 -10"), Geometry.Parse("M 8 12 l 10 -10") });                    
                 case FillStyle.Bitmap:
-                    return ToTiledImageBrush(brush, symbolCache);
+                    return GetOrCreateBitmapImage(brush, symbolCache).ToTiledImageBrush();
+                case FillStyle.BitmapRotated:
+                    RotateTransform aRotateTransform = new RotateTransform();
+                    aRotateTransform.CenterX = 0.5;
+                    aRotateTransform.CenterY = 0.5;
+                    aRotateTransform.Angle = rotate;
+                    var b = GetOrCreateBitmapImage(brush, symbolCache).ToTiledImageBrush();
+                    b.RelativeTransform = aRotateTransform;
+                    return b;
+                case FillStyle.Svg:
+                    return null;
                 case FillStyle.Dotted:
                     return DottedBrush(brush);
                 case FillStyle.DiagonalCross:
@@ -98,11 +148,11 @@ namespace Mapsui.Rendering.Xaml
             return CreatePatternVisual(elements, viewport, viewbox);
         }
 
-        private static ImageBrush ToTiledImageBrush(Styles.Brush brush, SymbolCache symbolCache = null)
+        private static BitmapImage GetOrCreateBitmapImage(Styles.Brush brush, SymbolCache symbolCache = null, bool isSvg = false)
         {
             return symbolCache != null ? 
-                symbolCache.GetTiledImageBrush(brush.BitmapId) : 
-                BitmapRegistry.Instance.Get(brush.BitmapId).ToTiledImageBrush();
+                (BitmapImage)symbolCache.GetOrCreate(brush.BitmapId): 
+                ((System.IO.Stream)BitmapRegistry.Instance.Get(brush.BitmapId)).ToBitmapImage();
         }
         
         private static VisualBrush DottedBrush(Styles.Brush brush)

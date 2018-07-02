@@ -21,6 +21,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Mapsui.Geometries.Utilities;
 
+// ReSharper disable NonReadonlyMemberInGetHashCode // todo: Fix this real issue
 namespace Mapsui.Geometries
 {
     /// <summary>
@@ -60,7 +61,7 @@ namespace Mapsui.Geometries
         /// <summary>
         ///     Gets or sets the collection of vertices in this Geometry
         /// </summary>
-        public List<Point> Vertices { get; set; }
+        public IList<Point> Vertices { get; set; }
 
         /// <summary>
         ///     Returns the vertice where this Geometry begins
@@ -134,19 +135,23 @@ namespace Mapsui.Geometries
         ///     The minimum bounding box for this Geometry.
         /// </summary>
         /// <returns>BoundingBox for this geometry</returns>
-        public override BoundingBox GetBoundingBox()
+        public override BoundingBox BoundingBox
         {
-            if ((Vertices == null) || (Vertices.Count == 0))
-                return null;
-            var bbox = new BoundingBox(Vertices[0], Vertices[0]);
-            for (var i = 1; i < Vertices.Count; i++)
+            get
             {
-                bbox.Min.X = Vertices[i].X < bbox.Min.X ? Vertices[i].X : bbox.Min.X;
-                bbox.Min.Y = Vertices[i].Y < bbox.Min.Y ? Vertices[i].Y : bbox.Min.Y;
-                bbox.Max.X = Vertices[i].X > bbox.Max.X ? Vertices[i].X : bbox.Max.X;
-                bbox.Max.Y = Vertices[i].Y > bbox.Max.Y ? Vertices[i].Y : bbox.Max.Y;
+                if ((Vertices == null) || (Vertices.Count == 0))
+                    return null;
+                var bbox = new BoundingBox(Vertices[0], Vertices[0]);
+                for (var i = 1; i < Vertices.Count; i++)
+                {
+                    bbox.Min.X = Vertices[i].X < bbox.Min.X ? Vertices[i].X : bbox.Min.X;
+                    bbox.Min.Y = Vertices[i].Y < bbox.Min.Y ? Vertices[i].Y : bbox.Min.Y;
+                    bbox.Max.X = Vertices[i].X > bbox.Max.X ? Vertices[i].X : bbox.Max.X;
+                    bbox.Max.Y = Vertices[i].Y > bbox.Max.Y ? Vertices[i].Y : bbox.Max.Y;
+                }
+
+                return bbox;
             }
-            return bbox;
         }
 
         /// <summary>
@@ -239,6 +244,24 @@ namespace Mapsui.Geometries
             var lineString = geom as LineString;
             if (lineString == null) return false;
             return Equals(lineString);
+        }
+
+
+        /// <summary>
+        ///     Returns a list of line string segments
+        /// </summary>
+        /// <returns>List of LineString</returns>
+        public List<LineString> GetSegments()
+        {
+            List<LineString> segments = new List<LineString>();
+            for (int i = 0; i < Vertices.Count - 1; i++)
+            {
+                LineString tmp = new LineString();
+                tmp.Vertices.Add(Vertices[i]);
+                tmp.Vertices.Add(Vertices[i + 1]);
+                segments.Add(tmp);
+            }
+            return segments;
         }
     }
 }

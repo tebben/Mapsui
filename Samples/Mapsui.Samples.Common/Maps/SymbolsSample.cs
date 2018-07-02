@@ -4,6 +4,7 @@ using System.Reflection;
 using Mapsui.Geometries;
 using Mapsui.Layers;
 using Mapsui.Providers;
+using Mapsui.Samples.Common.Helpers;
 using Mapsui.Styles;
 using Mapsui.Utilities;
 
@@ -11,16 +12,13 @@ namespace Mapsui.Samples.Common.Maps
 {
     public static class SymbolsSample
     {
-        private const string StylesLayerName = "Styles Layer";
-        
         public static Map CreateMap()
         {
             var map = new Map();
 
             map.Layers.Add(OpenStreetMap.CreateTileLayer());
             map.Layers.Add(CreateStylesLayer(map.Envelope));
-            map.HoverInfoLayers.Add(map.Layers.First(l => l.Name == StylesLayerName));
-
+            
             return map;
         }
 
@@ -28,16 +26,17 @@ namespace Mapsui.Samples.Common.Maps
         {
             return new MemoryLayer
             {
-                Name = StylesLayerName,
+                Name = "Styles Layer",
                 DataSource = CreateMemoryProviderWithDiverseSymbols(envelope, 25),
-                Style = null
+                Style = null,
+                IsMapInfoLayer = true
             };
         }
 
         public static MemoryProvider CreateMemoryProviderWithDiverseSymbols(BoundingBox envelope, int count = 100)
         {
             
-            return new MemoryProvider(CreateDiverseFeatures(PointsSample.GenerateRandomPoints(envelope, count, 3)));
+            return new MemoryProvider(CreateDiverseFeatures(RandomPointHelper.GenerateRandomPoints(envelope, count)));
         }
 
         private static Features CreateDiverseFeatures(IEnumerable<IGeometry> randomPoints)
@@ -81,7 +80,11 @@ namespace Mapsui.Samples.Common.Maps
                 CreateBitmapStyle("Mapsui.Samples.Common.Images.ic_place_black_24dp.png", 0.7),
                 CreateBitmapStyle("Mapsui.Samples.Common.Images.ic_place_black_24dp.png", 0.8),
                 CreateBitmapStyle("Mapsui.Samples.Common.Images.ic_place_black_24dp.png", 0.9),
-                CreateBitmapStyle("Mapsui.Samples.Common.Images.ic_place_black_24dp.png", 1.0)
+                CreateBitmapStyle("Mapsui.Samples.Common.Images.ic_place_black_24dp.png", 1.0),
+                CreateSvgStyle("Mapsui.Samples.Common.Images.Pin.svg", 0.7),
+                CreateSvgStyle("Mapsui.Samples.Common.Images.Pin.svg", 0.8),
+                CreateSvgStyle("Mapsui.Samples.Common.Images.Ghostscript_Tiger.svg", 0.05),
+                CreateSvgStyle("Mapsui.Samples.Common.Images.Ghostscript_Tiger.svg", 0.1),
             };
         }
 
@@ -89,6 +92,12 @@ namespace Mapsui.Samples.Common.Maps
         {
             var bitmapId = GetBitmapIdForEmbeddedResource(embeddedResourcePath);
             return new SymbolStyle { BitmapId = bitmapId, SymbolScale = scale, SymbolOffset = new Offset(0, 32) };
+        }
+
+        private static SymbolStyle CreateSvgStyle(string embeddedResourcePath, double scale)
+        {
+            var bitmapId = GetBitmapIdForEmbeddedResource(embeddedResourcePath);
+            return new SymbolStyle { BitmapId = bitmapId, SymbolType = SymbolType.Svg, SymbolScale = scale, SymbolOffset = new Offset(0.0, 0.5, true) };
         }
 
         private static int GetBitmapIdForEmbeddedResource(string imagePath)

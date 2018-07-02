@@ -15,6 +15,7 @@
 // along with SharpMap; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
+// ReSharper disable NonReadonlyMemberInGetHashCode // todo: Fix this real issue
 namespace Mapsui.Styles
 {
     /// <summary>
@@ -27,6 +28,7 @@ namespace Mapsui.Styles
             MinVisible = 0;
             MaxVisible = double.MaxValue;
             Enabled = true;
+            Opacity = 1f;
         }
 
         /// <summary>
@@ -44,6 +46,10 @@ namespace Mapsui.Styles
         /// </summary>
         public bool Enabled { get; set; }
 
+        /// <summary>
+        ///     Gets or sets the objects base opacity
+        /// </summary>
+        public float Opacity { get; set; }
 
         public override bool Equals(object obj)
         {
@@ -70,7 +76,7 @@ namespace Mapsui.Styles
 
         public override int GetHashCode()
         {
-            return MinVisible.GetHashCode() ^ MaxVisible.GetHashCode() ^ Enabled.GetHashCode();
+            return MinVisible.GetHashCode() ^ MaxVisible.GetHashCode() ^ Enabled.GetHashCode() ^ Opacity.GetHashCode();
         }
 
         public static bool operator ==(Style style1, Style style2)

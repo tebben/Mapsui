@@ -12,14 +12,15 @@ namespace Mapsui.Tests.Common
             {
                 StackedLabelsSample.CreateMap,
                 VectorStyleSample.CreateMap,
-                CircleAndSquareSymbolSample.CreateMap,
+                SymbolTypesSample.CreateMap,
                 BitmapSymbolSample.CreateMap,
                 BitmapSymbolWithRotationAndOffsetSample.CreateMap,
                 PointInWorldUnits.CreateMap,
                 PolygonSample.CreateMap,
                 LineSample.CreateMap,
                 TilesSample.CreateMap,
-                LabelSample.CreateMap
+                LabelSample.CreateMap,
+                BitmapSample.CreateMap
             };
         }
     }

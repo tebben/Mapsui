@@ -1,37 +1,31 @@
 using System;
-using System.ComponentModel;
-using Android.App;
+using System.Collections.Generic;
+using System.Linq;
 using Android.Content;
 using Android.Graphics;
+using Android.OS;
 using Android.Util;
 using Android.Views;
-using Android.Widget;
-using Java.Lang;
-using Mapsui.Fetcher;
-using Mapsui.Layers;
+using Mapsui.Geometries.Utilities;
+using Mapsui.Logging;
 using SkiaSharp.Views.Android;
 using Math = System.Math;
+using Point = Mapsui.Geometries.Point;
 
 namespace Mapsui.UI.Android
 {
-    public class MapControl : ViewGroup, IMapControl
+    public partial class MapControl : ViewGroup, IMapControl
     {
-        private const int None = 0;
-        private const int Dragging = 1;
-        private const int Zoom = 2;
-        private int _mode = None;
-        private PointF _previousMap, _currentMap;
-        private PointF _previousMid = new PointF();
-        private readonly PointF _currentMid = new PointF();
-        private float _oldDist = 1f;
-        private bool _viewportInitialized;
-        private Rendering.Skia.MapRenderer _renderer;
         private SKCanvasView _canvas;
-        private Map _map;
-        private AttributionPanel _attributionPanel;
-        private float _scale;
-        
-        public event EventHandler ViewportInitialized;
+        private double _innerRotation;
+        private GestureDetector _gestureDetector;
+        private double _previousAngle;
+        private double _previousRadius = 1f;
+        private TouchMode _mode = TouchMode.None;
+        /// <summary>
+        /// Saver for center before last pinch movement
+        /// </summary>
+        private Point _previousCenter = new Point();
 
         public MapControl(Context context, IAttributeSet attrs) :
             base(context, attrs)
@@ -39,7 +33,7 @@ namespace Mapsui.UI.Android
             Initialize();
         }
 
-        public MapControl(Context context, IAttributeSet attrs, int defStyle):
+        public MapControl(Context context, IAttributeSet attrs, int defStyle) :
             base(context, attrs, defStyle)
         {
             Initialize();
@@ -47,119 +41,165 @@ namespace Mapsui.UI.Android
 
         public void Initialize()
         {
-            _scale = Resources.DisplayMetrics.Density;
-
-            _canvas = new SKCanvasView(Context);
+            SetBackgroundColor(Color.Transparent);
+            _canvas = new SKCanvasView(Context) { IgnorePixelScaling = true };
             _canvas.PaintSurface += CanvasOnPaintSurface;
             AddView(_canvas);
 
-            AddView(_attributionPanel = new AttributionPanel(Context));
-            
             Map = new Map();
-            _renderer = new Rendering.Skia.MapRenderer();
-            InitializeViewport();
             Touch += MapView_Touch;
+
+            _gestureDetector = new GestureDetector(Context, new GestureDetector.SimpleOnGestureListener());
+            _gestureDetector.SingleTapConfirmed += OnSingleTapped;
+            _gestureDetector.DoubleTap += OnDoubleTapped;
         }
 
-        protected override void OnSizeChanged(int w, int h, int oldw, int oldh)
-        {
-            Map.Viewport.Width = Width / _scale;
-            Map.Viewport.Height = Height / _scale;
+        public float PixelDensity => Resources.DisplayMetrics.Density;
 
-            base.OnSizeChanged(w, h, oldw, oldh);
+        private void OnDoubleTapped(object sender, GestureDetector.DoubleTapEventArgs e)
+        {
+            var position = GetScreenPosition(e.Event, this);
+            OnInfo(InvokeInfo(Map.Layers.Where(l => l.IsMapInfoLayer), Map.Widgets, Viewport, 
+                position, position, Renderer.SymbolCache, WidgetTouched, 2));
+        }
+
+        private void OnSingleTapped(object sender, GestureDetector.SingleTapConfirmedEventArgs e)
+        {
+            var position = GetScreenPosition(e.Event, this);
+            OnInfo(InvokeInfo(Map.Layers.Where(l => l.IsMapInfoLayer), Map.Widgets, Viewport, 
+                position, position, Renderer.SymbolCache, WidgetTouched, 1));
+        }
+
+        protected override void OnSizeChanged(int width, int height, int oldWidth, int oldHeight)
+        {
+            base.OnSizeChanged(width, height, oldWidth, oldHeight);
+
+            _viewport.Width = ViewportWidth;
+            _viewport.Height = ViewportHeight;
+        }
+
+        private void RunOnUIThread(Action action)
+        {
+            new Handler(Looper.MainLooper).Post(action);
         }
 
         private void CanvasOnPaintSurface(object sender, SKPaintSurfaceEventArgs args)
         {
-            if (!_viewportInitialized)
-                InitializeViewport();
-            if (!_viewportInitialized)
-                return;
+            TryInitializeViewport(ViewportWidth, ViewportHeight);
+            if (!Viewport.Initialized) return;
 
-            args.Surface.Canvas.Scale(_scale, _scale);
-
-            _renderer.Render(args.Surface.Canvas, _map.Viewport, _map.Layers, _map.BackColor);
-        }
-
-        private void InitializeViewport()
-        {
-            if (ViewportHelper.TryInitializeViewport(_map, Width / _scale, Height / _scale))
-            {
-                _viewportInitialized = true;
-                Map.ViewChanged(true);
-                OnViewportInitialized();
-            }
-        }
-
-        private void OnViewportInitialized()
-        {
-            ViewportInitialized?.Invoke(this, EventArgs.Empty);
+            Renderer.Render(args.Surface.Canvas, Map, Viewport, _map.Layers, _map.Widgets, _map.BackColor);
         }
 
         public void MapView_Touch(object sender, TouchEventArgs args)
         {
-            var x = (int)args.Event.RawX;
-            var y = (int)args.Event.RawY;
+            if (_gestureDetector.OnTouchEvent(args.Event))
+                return;
+
+            var touchPoints = GetScreenPositions(args.Event, this);
+
             switch (args.Event.Action)
             {
-                case MotionEventActions.Down:
-                    _previousMap = null;
-                    _mode = Dragging;
-                    break;
                 case MotionEventActions.Up:
-                    _previousMap = null;
-                    Invalidate();
-                    _mode = None;
-                    _map.ViewChanged(true);
-                    Map.InvokeInfo(GetPosition(args.Event).ToMapsui(), _renderer.SymbolCache);
+                    RefreshGraphics();
+                    _mode = TouchMode.None;
+                    RefreshData();
                     break;
+                case MotionEventActions.Down:
+                case MotionEventActions.Pointer1Down:
                 case MotionEventActions.Pointer2Down:
-                    _previousMap = null;
-                    _oldDist = Spacing(args.Event);
-                    MidPoint(_currentMid, args.Event);
-                    _previousMid = _currentMid;
-                    _mode = Zoom;
+                case MotionEventActions.Pointer3Down:
+                    if (touchPoints.Count >= 2)
+                    {
+                        (_previousCenter, _previousRadius, _previousAngle) = GetPinchValues(touchPoints);
+                        _mode = TouchMode.Zooming;
+                        _innerRotation = Viewport.Rotation;
+                    }
+                    else
+                    {
+                        _mode = TouchMode.Dragging;
+                        _previousCenter = touchPoints.First();
+                    }
                     break;
+                case MotionEventActions.Pointer1Up:
                 case MotionEventActions.Pointer2Up:
-                    _previousMap = null;
-                    _previousMid = null;
-                    _mode = Dragging;
+                case MotionEventActions.Pointer3Up:
+                    // Remove the touchPoint that was released from the locations to reset the
+                    // starting points of the move and rotation
+                    touchPoints.RemoveAt(args.Event.ActionIndex);
+
+                    if (touchPoints.Count >= 2)
+                    {
+                        (_previousCenter, _previousRadius, _previousAngle) = GetPinchValues(touchPoints);
+                        _mode = TouchMode.Zooming;
+                        _innerRotation = Viewport.Rotation;
+                    }
+                    else
+                    {
+                        _mode = TouchMode.Dragging;
+                        _previousCenter = touchPoints.First();
+                    }
                     break;
                 case MotionEventActions.Move:
                     switch (_mode)
                     {
-                        case Dragging:
-                            _currentMap = new PointF(x, y);
-                            if (_previousMap != null)
+                        case TouchMode.Dragging:
                             {
-                                _map.Viewport.Transform(
-                                    _currentMap.X  / _scale,
-                                    _currentMap.Y / _scale,
-                                    _previousMap.X / _scale,
-                                    _previousMap.Y / _scale);
-                                Invalidate();
-                            }
-                            _previousMap = _currentMap;
-                            break;
-                        case Zoom:
-                            {
-                                if (args.Event.PointerCount < 2)
+                                if (touchPoints.Count != 1)
                                     return;
 
-                                var newDist = Spacing(args.Event);
-                                var scale = newDist / _oldDist;
+                                var touchPosition = touchPoints.First();
+                                if (_previousCenter != null && !_previousCenter.IsEmpty())
+                                {
+                                    Viewport.Transform(touchPosition.X, touchPosition.Y, _previousCenter.X, _previousCenter.Y);
 
-                                _oldDist = Spacing(args.Event);
-                                _previousMid = new PointF(_currentMid.X, _currentMid.Y);
-                                MidPoint(_currentMid, args.Event);
+                                    ViewportLimiter.LimitExtent(_viewport, _map.PanMode, _map.PanLimits, _map.Envelope);
 
-                                _map.Viewport.Transform(
-                                    _currentMid.X / _scale,
-                                    _currentMid.Y / _scale,
-                                    _previousMid.X / _scale,
-                                    _previousMid.Y / _scale,
-                                    scale);
-                                Invalidate();
+                                    RefreshGraphics();
+                                }
+                                _previousCenter = touchPosition;
+                            }
+                            break;
+                        case TouchMode.Zooming:
+                            {
+                                if (touchPoints.Count < 2)
+                                    return;
+
+                                var (prevCenter, prevRadius, prevAngle) = (_previousCenter, _previousRadius, _previousAngle);
+                                var (center, radius, angle) = GetPinchValues(touchPoints);
+
+                                double rotationDelta = 0;
+
+                                if (!RotationLock)
+                                {
+                                    _innerRotation += angle - prevAngle;
+                                    _innerRotation %= 360;
+
+                                    if (_innerRotation > 180)
+                                        _innerRotation -= 360;
+                                    else if (_innerRotation < -180)
+                                        _innerRotation += 360;
+
+                                    if (Viewport.Rotation == 0 && Math.Abs(_innerRotation) >= Math.Abs(UnSnapRotationDegrees))
+                                        rotationDelta = _innerRotation;
+                                    else if (Viewport.Rotation != 0)
+                                    {
+                                        if (Math.Abs(_innerRotation) <= Math.Abs(ReSnapRotationDegrees))
+                                            rotationDelta = -Viewport.Rotation;
+                                        else
+                                            rotationDelta = _innerRotation - Viewport.Rotation;
+                                    }
+                                }
+
+                                Viewport.Transform(center.X, center.Y, prevCenter.X, prevCenter.Y, radius / prevRadius, rotationDelta);
+
+                                (_previousCenter, _previousRadius, _previousAngle) = (center, radius, angle);
+
+                                ViewportLimiter.Limit(_viewport,
+                                    _map.ZoomMode, _map.ZoomLimits, _map.Resolutions,
+                                    _map.PanMode, _map.PanLimits, _map.Envelope);
+
+                                RefreshGraphics();
                             }
                             break;
                     }
@@ -167,131 +207,138 @@ namespace Mapsui.UI.Android
             }
         }
 
-        private static float Spacing(MotionEvent me)
+        /// <summary>
+        /// Gets the screen position in device independent units relative to the MapControl.
+        /// </summary>
+        /// <param name="motionEvent"></param>
+        /// <param name="view"></param>
+        /// <returns></returns>
+        private List<Point> GetScreenPositions(MotionEvent motionEvent, View view)
         {
-            if (me.PointerCount < 2)
-                throw new ArgumentException();
-
-            var x = me.GetX(0) - me.GetX(1);
-            var y = me.GetY(0) - me.GetY(1);
-            return (float)Math.Sqrt(x * x + y * y);
+            var result = new List<Point>();
+            for (var i = 0; i < motionEvent.PointerCount; i++)
+            {
+                result.Add(new Point(motionEvent.GetX(i) - view.Left, motionEvent.GetY(i) - view.Top)
+                    .ToDeviceIndependentUnits(PixelDensity));
+            }
+            return result;
         }
 
-        private static void MidPoint(PointF point, MotionEvent motionEvent)
+        /// <summary>
+        /// Gets the screen position in device independent units relative to the MapControl.
+        /// </summary>
+        /// <param name="motionEvent"></param>
+        /// <param name="view"></param>
+        /// <returns></returns>
+        private Point GetScreenPosition(MotionEvent motionEvent, View view)
         {
-            var position = GetPosition2(motionEvent);
-            point.Set(position.X / 2, position.Y / 2);
-        }
-        
-        private static PointF GetPosition2(MotionEvent motionEvent)
-        {
-            return new PointF(motionEvent.GetX(0) + motionEvent.GetX(1), motionEvent.GetY(0) + motionEvent.GetY(1));
-        }
-
-        private static PointF GetPosition(MotionEvent motionEvent)
-        {
-            return new PointF(motionEvent.GetX(0) , motionEvent.GetY(0));
+            return GetScreenPositionInPixels(motionEvent, view)
+                .ToDeviceIndependentUnits(PixelDensity);
         }
 
-        public Map Map
+        /// <summary>
+        /// Gets the screen position in pixels relative to the MapControl.
+        /// </summary>
+        /// <param name="motionEvent"></param>
+        /// <param name="view"></param>
+        /// <returns></returns>
+        private static Point GetScreenPositionInPixels(MotionEvent motionEvent, View view)
         {
-            get
-            {
-                return _map;
-            }
-            set
-            {
-                if (_map != null)
-                {
-                    var temp = _map;
-                    _map = null;
-                    temp.DataChanged -= MapDataChanged;
-                    temp.PropertyChanged -= MapPropertyChanged;
-                    temp.RefreshGraphics -= MapRefreshGraphics;
-                    temp.Dispose();
-                    _attributionPanel.Clear();
-                }
-
-                _map = value;
-
-                if (_map != null)
-                {
-                    _map.DataChanged += MapDataChanged;
-                    _map.PropertyChanged += MapPropertyChanged;
-                    _map.RefreshGraphics += MapRefreshGraphics;
-                    _map.ViewChanged(true);
-                    _attributionPanel.Populate(Map.Layers);
-                }
-
-                RefreshGraphics();
-            }
-        }
-
-        private void MapRefreshGraphics(object sender, EventArgs eventArgs)
-        {
-            ((Activity)Context).RunOnUiThread(new Runnable(RefreshGraphics));
-        }
-
-        private void MapPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(Layer.Enabled))
-            {
-                RefreshGraphics();
-            }
-            else if (e.PropertyName == nameof(Layer.Opacity))
-            {
-                RefreshGraphics();
-            }
-            else if (e.PropertyName == nameof(Map.Layers))
-            {
-                _attributionPanel.Populate(Map.Layers);
-            }
-        }
-
-        public void MapDataChanged(object sender, DataChangedEventArgs e)
-        {
-            if (e.Cancelled || e.Error != null)
-            {
-                // todo: test code below:
-                ((Activity)Context).RunOnUiThread(new Runnable(Toast.MakeText(Context, e.Error.Message, ToastLength.Short).Show));
-            }
-            else // no problems
-            {
-                ((Activity)Context).RunOnUiThread(new Runnable(RefreshGraphics));
-            }
+            return new PointF(
+                motionEvent.GetX(0) - view.Left,
+                motionEvent.GetY(0) - view.Top).ToMapsui();
         }
 
         public void RefreshGraphics()
         {
-            PostInvalidate();
+            RunOnUIThread(RefreshGraphicsWithTryCatch);
+        }
+
+        private void RefreshGraphicsWithTryCatch()
+        {
+            try
+            {
+                // Bothe Invalidate and _canvas.Invalidate are necessary in different scenarios.
+                Invalidate();
+                _canvas?.Invalidate();
+            }
+            catch (ObjectDisposedException e)
+            {
+                // See issue: https://github.com/Mapsui/Mapsui/issues/433
+                // What seems to be happening. The Activity is Disposed. Appently it's children get Disposed
+                // explicitly by something in Xamarin. During this Dispose the MessageCenter, which is itself
+                // not disposed gets another notification to call RefreshGraphics.
+                Logger.Log(LogLevel.Warning, "This can happen when the parent Activity is disposing.", e);
+            }
         }
 
         protected override void OnLayout(bool changed, int l, int t, int r, int b)
         {
-            Position(_canvas, l, t, r, b);
-            UpdateSize(_attributionPanel);
-            PositionBottomRight(_attributionPanel);
+            _canvas.Top = t;
+            _canvas.Bottom = b;
+            _canvas.Left = l;
+            _canvas.Right = r;
         }
 
-        private void Position(View view, int l, int t, int r, int b)
+        public void OpenBrowser(string url)
         {
-            view.Top = t;
-            view.Bottom = b;
-            view.Left = l;
-            view.Right = r;
+            global::Android.Net.Uri uri = global::Android.Net.Uri.Parse(url);
+            Intent intent = new Intent(Intent.ActionView);
+            intent.SetData(uri);
+
+            Intent chooser = Intent.CreateChooser(intent, "Open with");
+
+            Context.StartActivity(chooser);
         }
 
-        private void PositionBottomRight(View view)
+        public new void Dispose()
         {
-            Position(view, Right - view.Width, Bottom - view.Height, Right, Bottom);
+            Unsubscribe();
+            base.Dispose();
         }
 
-        private static void UpdateSize(View view)
+        protected override void Dispose(bool disposing)
         {
-            // I created this method because I don't understand what I'm doing
-            view.Measure(0, 0);
-            view.Right = view.Left + view.MeasuredWidth;
-            view.Bottom = view.Top + view.MeasuredHeight;
+            Unsubscribe();
+            base.Dispose(disposing);
+        }
+
+        private static (Point centre, double radius, double angle) GetPinchValues(List<Point> locations)
+        {
+            if (locations.Count < 2)
+                throw new ArgumentException();
+
+            double centerX = 0;
+            double centerY = 0;
+
+            foreach (var location in locations)
+            {
+                centerX += location.X;
+                centerY += location.Y;
+            }
+
+            centerX = centerX / locations.Count;
+            centerY = centerY / locations.Count;
+
+            var radius = Algorithms.Distance(centerX, centerY, locations[0].X, locations[0].Y);
+
+            var angle = Math.Atan2(locations[1].Y - locations[0].Y, locations[1].X - locations[0].X) * 180.0 / Math.PI;
+
+            return (new Point(centerX, centerY), radius, angle);
+        }
+
+        public float ViewportWidth => ToDeviceIndependentUnits(Width);
+        public float ViewportHeight => ToDeviceIndependentUnits(Height);
+
+        /// <summary>
+        /// In native Android touch positions are in pixels whereas the canvas needs
+        /// to be drawn in device independent units (otherwise labels on raster tiles will be unreadable
+        /// and symbols will be too small). This method converts pixels to device independent units.
+        /// </summary>
+        /// <returns>The pixels given as input translated to device independent units.</returns>
+        private float ToDeviceIndependentUnits(float pixelCoordinate)
+        {
+            return pixelCoordinate / PixelDensity;
         }
     }
 }

@@ -1,49 +1,65 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using Mapsui.Styles;
-using XamlMedia = System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Media;
 
 namespace Mapsui.Rendering.Xaml
 {
-    public class SymbolCache : Dictionary<int, XamlMedia.ImageBrush>, ISymbolCache
+    public class SymbolCache : Dictionary<int, ImageSource>, ISymbolCache
     {
-        // Try to get an imagebrush from cache by given BitmapRegistry id, if not exist
-        // create a new brush and return it.
-        public XamlMedia.ImageBrush GetTiledImageBrush(int bitmapId)
+        public ImageSource GetOrCreate(int bitmapId)
         {
             if (ContainsKey(bitmapId)) return this[bitmapId];
 
-            return this[bitmapId] = BitmapRegistry.Instance.Get(bitmapId).ToTiledImageBrush();
-        }
+            var obj = BitmapRegistry.Instance.Get(bitmapId);
 
-        public XamlMedia.ImageBrush GetImageBrush(int bitmapId)
-        {
-            if (ContainsKey(bitmapId)) return this[bitmapId];
-            
-            return (this[bitmapId] = CreateImageBrush(bitmapId));
-        }
+            if (obj is Sprite sprite)
+            {
+                if (GetOrCreate(sprite.Atlas) == null)
+                    throw new AccessViolationException("Atlas bitmap unknown");
 
-        private static XamlMedia.ImageBrush CreateImageBrush(int bitmapId)
-        {
-            var bitmapImage = BitmapRegistry.Instance.Get(bitmapId).ToBitmapImage();
-            var brush = new XamlMedia.ImageBrush {ImageSource = bitmapImage};
-            return brush;
-        }
+                var bitmapSource = new CroppedBitmap((BitmapImage)GetOrCreate(sprite.Atlas),
+                    new System.Windows.Int32Rect(sprite.X, sprite.Y, sprite.Width, sprite.Height));
 
-        public double GetWidth(int bitmapId)
-        {
-            return GetImageBrush(bitmapId).ImageSource.Width;
-        }
+                var encoder = new PngBitmapEncoder();
+                var memoryStream = new MemoryStream();
+                var bImg = new BitmapImage();
 
-        public double GetHeight(int bitmapId)
-        {
-            // This creates a regular symbol and not the tile one. This could be incorrect
-            return GetImageBrush(bitmapId).ImageSource.Height;
+                encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+                encoder.Save(memoryStream);
+
+                memoryStream.Position = 0;
+
+                return this[bitmapId] = memoryStream.ToBitmapImage();
+            }
+            else
+            {
+                var stream = (Stream) obj;
+                byte[] buffer = new byte[4];
+
+                stream.Position = 0;
+                stream.Read(buffer, 0, 4);
+
+                if (System.Text.Encoding.UTF8.GetString(buffer).ToLower().Equals("<svg"))
+                {
+                    stream.Position = 0;
+                    var image = Svg2Xaml.SvgReader.Load(stream);
+                    // Freeze the DrawingImage for performance benefits.
+                    image.Freeze();
+                    return this[bitmapId] = image;
+                }
+                else
+                    return this[bitmapId] = stream.ToBitmapImage();
+            }
         }
 
         public Size GetSize(int bitmapId)
         {
-            var brush = GetImageBrush(bitmapId);
-            return new Size(brush.ImageSource.Width, brush.ImageSource.Height);
+            var brush = GetOrCreate(bitmapId);
+
+            return new Size(brush.Width, brush.Height);
         }
     }
 }
